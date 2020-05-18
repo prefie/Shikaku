@@ -12,7 +12,6 @@ class Solver:
             return True
 
         block = self.blocks[block_number]
-        # Перебираю все возможные длины сторон в блоке
         for sides in block.sides:
             for i in range(sides[0]):
                 for j in range(sides[1]):
@@ -21,18 +20,17 @@ class Solver:
                                 sides[1] > self.task.size_y or
                                 sides[2] > self.task.size_z):
                             continue
-                        pos1 = Point(
-                            block.x + i - sides[0] + 1,
-                            block.y + j - sides[1] + 1,
-                            block.z - k)
-                        pos2 = Point(
-                            block.x + i,
-                            block.y + j,
-                            block.z - k + sides[2] - 1)
+
+                        point1 = Point(block.x + i - sides[0] + 1,
+                                       block.y + j - sides[1] + 1,
+                                       block.z - k)
+                        point2 = Point(block.x + i,
+                                       block.y + j,
+                                       block.z - k + sides[2] - 1)
 
                         try:
                             parallelepiped = Parallelepiped(
-                                pos1, pos2, block_number, block, self.task)
+                                point1, point2, block_number, block, self.task)
                         except AssertionError:
                             continue
 
@@ -92,36 +90,44 @@ class Parallelepiped:
         assert point1.z >= 0
 
         self.task = task
-        self.pos1 = point1
-        self.pos2 = point2
+        self.point1 = point1
+        self.point2 = point2
         self.block_number = number_block
         self.block = block
 
     def check_conflicts(self):
-        for z in range(self.pos1.z, self.pos2.z + 1):
-            for y in range(self.pos1.y, self.pos2.y + 1):
-                for x in range(self.pos1.x, self.pos2.x + 1):
+        for z in range(self.point1.z, self.point2.z + 1):
+            for y in range(self.point1.y, self.point2.y + 1):
+                for x in range(self.point1.x, self.point2.x + 1):
                     if (self.task.solution[x][y][z] != self.block_number and
                             self.task.solution[x][y][z] != -1):
                         return True
         return False
 
     def fill_ids(self):
-        block = []
-        for z in range(self.pos1.z, self.pos2.z + 1):
-            for y in range(self.pos1.y, self.pos2.y + 1):
-                for x in range(self.pos1.x, self.pos2.x + 1):
+        for z in range(self.point1.z, self.point2.z + 1):
+            for y in range(self.point1.y, self.point2.y + 1):
+                for x in range(self.point1.x, self.point2.x + 1):
                     self.task.solution[x][y][z] = self.block_number
-                    block.append([x, y, z])
 
-        self.task.answer.append(block)
+        if self.block_number != -1:
+            self._add_block_in_answer()
 
     def clear_ids(self):
         self.block_number = -1
         self.task.answer.pop(self.block_number)
         self.fill_ids()
-        self.task.solution[self.block.x][self.block.y][self.block.z] =\
+        self.task.solution[self.block.x][self.block.y][self.block.z] = \
             self.block_number
+
+    def _add_block_in_answer(self):
+        block = []
+        for x in range(self.point1.x, self.point2.x + 1):
+            for y in range(self.point1.y, self.point2.y + 1):
+                for z in range(self.point1.z, self.point2.z + 1):
+                    block.append([x, y, z])
+
+        self.task.answer.append(block)
 
 
 class Point:
@@ -138,15 +144,12 @@ class Point:
         """Point(x1-x2, y1-y2)"""
         return Point(self.x - point.x, self.y - point.y, self.z - point.z)
 
-    def __str__(self):
-        return f'({self.x}, {self.y}, {self.z})'
-
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y and self.z == other.z
 
 
 g = Generator()
-s = Solver(g.generate(5, 5, 5))
+s = Solver(g.generate(3, 3, 3))
 s.solve()
 
 print()
@@ -162,6 +165,8 @@ for x in range(s.task.size_x):
     for y in range(s.task.size_y):
         print(s.task.solution[x][y])
     print()
+for i in range(len(s.task.answer)):
+    print(f'{i}) {s.task.answer[i]}')
 
 for i in range(0):
     s = Solver(g.generate(3, 3, 3))

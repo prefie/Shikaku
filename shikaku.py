@@ -165,7 +165,7 @@ class MainForm(QMainWindow):
             y = ((e.y() - self.v.y() -
                   50 * self._task.size_z * math.sin(math.radians(30))) // 50)
 
-            if 0 <= y < self._task.size_y and 0 <= x < self._task.size_x:
+            if 0 <= y < self._task.size_y and 0 <= x < self._task.size_x - 1:
                 self.mainLayout.removeWidget(self.v)
                 self.v.close()
 

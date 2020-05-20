@@ -57,29 +57,3 @@ class Generator:
                     if self.field[x + i][y + j][z + k] != -1:
                         return True
         return False
-
-
-"""def test():
-    g = Generator()
-    g.generate(2, 2, 2)
-
-    for i in range(1000):
-        g.generate(1, 3, 3)
-        c = 0
-        for j in range(len(g.answer)):
-            for k in range(len(g.answer[j])):
-                c += 1
-        assert c == 9
-    print(g.field)
-    print()
-    print(g.answer)
-    print()
-    print()
-    print()
-    for x in range(len(g.field)):
-        for y in range(len(g.field[x])):
-            print(g.field[x][y])
-        print()
-
-
-test()"""

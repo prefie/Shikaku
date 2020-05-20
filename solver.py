@@ -147,28 +147,8 @@ class Point:
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y and self.z == other.z
 
-
-g = Generator()
-s = Solver(g.generate(3, 3, 3))
-s.solve()
-
-print()
-print('Задача:')
-for x in range(s.task.size_x):
-    for y in range(s.task.size_y):
-        print(s.task.field[x][y])
-    print()
-
-print()
-print('Ответ:')
-for x in range(s.task.size_x):
-    for y in range(s.task.size_y):
-        print(s.task.solution[x][y])
-    print()
-for i in range(len(s.task.answer)):
-    print(f'{i}) {s.task.answer[i]}')
-
-for i in range(0):
+def test():
+    g = Generator()
     s = Solver(g.generate(3, 3, 3))
     s.solve()
 
@@ -185,9 +165,29 @@ for i in range(0):
         for y in range(s.task.size_y):
             print(s.task.solution[x][y])
         print()
+    for i in range(len(s.task.answer)):
+        print(f'{i}) {s.task.answer[i]}')
 
-    for x in range(s.task.size_x):
-        for y in range(s.task.size_y):
-            for z in range(s.task.size_z):
-                if s.task.solution[x][y][z] == -1:
-                    raise Exception
+    for i in range(0):
+        s = Solver(g.generate(3, 3, 3))
+        s.solve()
+
+        print()
+        print('Задача:')
+        for x in range(s.task.size_x):
+            for y in range(s.task.size_y):
+                print(s.task.field[x][y])
+            print()
+
+        print()
+        print('Ответ:')
+        for x in range(s.task.size_x):
+            for y in range(s.task.size_y):
+                print(s.task.solution[x][y])
+            print()
+
+        for x in range(s.task.size_x):
+            for y in range(s.task.size_y):
+                for z in range(s.task.size_z):
+                    if s.task.solution[x][y][z] == -1:
+                        raise Exception

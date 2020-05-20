@@ -3,8 +3,9 @@ from task import Task
 
 
 class Generator:
-
+    """Генератор головоломок Shikaku"""
     def __init__(self):
+        """Создание генератора"""
         self.field = None
         self.answer = None
 

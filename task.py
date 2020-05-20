@@ -2,6 +2,7 @@ from copy import deepcopy
 
 
 class Task:
+    """Класс задачи-головоломки Shikaku"""
     def __init__(self, field):
         self.field = field
         self.solution = deepcopy(field)

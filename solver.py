@@ -104,7 +104,7 @@ class Parallelepiped:
         return False
 
     def fill_ids(self):
-        """Заполняет решение идентификатором параллелепипеда"""
+        """Заполняет решение идентификатором параллелепипеда(номером блока)"""
         for x in range(self.point1.x, self.point2.x + 1):
             for y in range(self.point1.y, self.point2.y + 1):
                 for z in range(self.point1.z, self.point2.z + 1):

@@ -1,7 +1,11 @@
+from copy import deepcopy
+
+
 class Solver:
     """Решатель головоломки Shikaku"""
     def __init__(self, task):
         self.task = task
+        self.task.solution = deepcopy(self.task.field)
         self._blocks = self._completion_blocks()
 
     def solve(self, block_number=0):

@@ -7,17 +7,24 @@ class Generator:
     def __init__(self):
         """Создание генератора"""
         self.field = None
+        self.solution = None
         self.answer = None
 
     def generate(self, dx, dy, dz):
         """По указанным измерениям генерирует поле и ответ"""
+        if dx < 1 or dy < 1 or dz < 1:
+            raise ValueError
+
         self.field =\
+            [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
+
+        self.solution = \
             [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
         self.answer = []
         for x in range(dx):
             for y in range(dy):
                 for z in range(dz):
-                    if self.field[x][y][z] != -1:
+                    if self.solution[x][y][z] != -1:
                         continue
                     sx = randint(1, dx - x)
                     sy = randint(1, dy - y)
@@ -36,7 +43,7 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    self.field[x + i][y + j][z + k] = len(self.answer)
+                    self.solution[x + i][y + j][z + k] = len(self.answer)
                     block.append([x + i, y + j, z + k])
         self.answer.append(block)
 
@@ -44,8 +51,6 @@ class Generator:
         """Заполняет поле объёмами и пустыми клетками"""
         for block in self.answer:
             v = len(block)
-            for x, y, z in block:
-                self.field[x][y][z] = -1
             x, y, z = choice(block)
             self.field[x][y][z] = v
 
@@ -55,6 +60,6 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    if self.field[x + i][y + j][z + k] != -1:
+                    if self.solution[x + i][y + j][z + k] != -1:
                         return True
         return False

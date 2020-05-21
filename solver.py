@@ -32,7 +32,7 @@ class Solver:
                         except ValueError:
                             continue
 
-                        if not parallelepiped.check_conflicts():
+                        if not parallelepiped.is_conflict():
                             parallelepiped.fill_ids()
 
                             if self.solve(block_number + 1):
@@ -92,22 +92,22 @@ class Parallelepiped:
         self.block_number = number_block
         self.block = block
 
-    def check_conflicts(self):
+    def is_conflict(self):
         """Возвращает True, если существует конфликт с
         существующим параллелепипедом"""
-        for z in range(self.point1.z, self.point2.z + 1):
+        for x in range(self.point1.x, self.point2.x + 1):
             for y in range(self.point1.y, self.point2.y + 1):
-                for x in range(self.point1.x, self.point2.x + 1):
-                    if (self.task.solution[x][y][z] != self.block_number and
-                            self.task.solution[x][y][z] != -1):
+                for z in range(self.point1.z, self.point2.z + 1):
+                    if (self.task.solution[x][y][z] != -1 and
+                            self.task.solution[x][y][z] != self.block_number):
                         return True
         return False
 
     def fill_ids(self):
         """Заполняет решение идентификатором параллелепипеда"""
-        for z in range(self.point1.z, self.point2.z + 1):
+        for x in range(self.point1.x, self.point2.x + 1):
             for y in range(self.point1.y, self.point2.y + 1):
-                for x in range(self.point1.x, self.point2.x + 1):
+                for z in range(self.point1.z, self.point2.z + 1):
                     self.task.solution[x][y][z] = self.block_number
 
         if self.block_number != -1:
@@ -118,7 +118,7 @@ class Parallelepiped:
         self.block_number = -1
         self.task.answer.pop(self.block_number)
         self.fill_ids()
-        self.task.solution[self.block.x][self.block.y][self.block.z] = \
+        self.task.solution[self.block.x][self.block.y][self.block.z] =\
             self.block_number
 
     def _add_block_in_answer(self):
@@ -139,11 +139,11 @@ class Point:
         self.y = y
         self.z = z
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.z == other.z
+
     def __add__(self, point):
         return Point(self.x + point.x, self.y + point.y, self.z + point.z)
 
     def __sub__(self, point):
         return Point(self.x - point.x, self.y - point.y, self.z - point.z)
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.z == other.z

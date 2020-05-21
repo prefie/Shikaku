@@ -6,7 +6,7 @@ from copy import deepcopy
 from generator import Generator
 from solver import Solver
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
-                             QHBoxLayout)
+                             QHBoxLayout, QInputDialog, QAction)
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF, QMouseEvent
 from PyQt5.QtCore import Qt, QPointF
 
@@ -23,7 +23,10 @@ BACK_COLORS = {
     8: QColor('grey'),
     9: QColor('maroon'),
     10: QColor('red'),
-    11: QColor('white')
+    11: QColor('white'),
+    12: QColor('darkCyan'),
+    13: QColor('darkBlue'),
+    14: QColor('darkGreen'),
 }
 
 
@@ -123,14 +126,14 @@ class GuiParallelepiped(QFrame):
 
         for i in self._rect:
             id_color = self._task.solution[i[0]][i[1]][i[2]]
-            color = BACK_COLORS[id_color % len(BACK_COLORS)]
+            color = BACK_COLORS[id_color % (len(BACK_COLORS) - 1)]
             brush = QBrush(color)
             painter.setBrush(brush)
             painter.drawPolygon(self._rect[i])
 
             if self._task.field[i[0]][i[1]][i[2]] != -1:
-                a = self._rect[i].boundingRect()
-                painter.drawText(a, Qt.AlignCenter,
+                rect = self._rect[i].boundingRect()
+                painter.drawText(rect, Qt.AlignCenter,
                                  str(self._task.field[i[0]][i[1]][i[2]]))
 
 
@@ -138,8 +141,8 @@ class MainForm(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        g = Generator()
-        s = Solver(g.generate(3, 3, 3))
+        self.generator = Generator()
+        s = Solver(self.generator.generate(2, 3, 3))
         s.solve()
 
         self._task = s.task
@@ -157,16 +160,29 @@ class MainForm(QMainWindow):
         self.v = GuiParallelepiped(self._task, self)
         self.mainLayout.addWidget(self.v)
 
+        self.v1 = QWidget()
+        self.v2 = QWidget()
+
+        exitAction = QAction('&Новая головоломка', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Показать решение новой головоломки')
+        exitAction.triggered.connect(self.showDialog)
+
+        self.statusBar()
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&Меню')
+        fileMenu.addAction(exitAction)
+
         self.show()
 
     def mousePressEvent(self, e: QMouseEvent):
         if self._flag:
             x = (e.x() - self.v.x()) // 50 - 1
             y = ((e.y() - self.v.y() -
-                  50 * self._task.size_z * math.sin(math.radians(30))) // 50)
+                  50*(self._task.size_z + 1)*math.sin(math.radians(30))) // 50)
 
             if 0 <= y < self._task.size_y and 0 <= x < self._task.size_x - 1:
-                self.mainLayout.removeWidget(self.v)
                 self.v.close()
 
                 self.v1 = GuiParallelepiped(self._task, 0, x, self)
@@ -183,9 +199,31 @@ class MainForm(QMainWindow):
             self.mainLayout.removeWidget(self.v2)
             self.v2.close()
 
-            self.mainLayout.addWidget(self.v)
             self.v.show()
             self._flag = True
+
+    def showDialog(self):
+        text, ok = QInputDialog.getText(self, 'Новая головоломка',
+                                        'Введите три измерения через пробел')
+        if ok:
+            try:
+                x, y, z = map(int, str(text).split())
+            except Exception:
+                pass
+            else:
+                s = Solver(self.generator.generate(x, y, z))
+                s.solve()
+
+                self.v1.close()
+                self.v2.close()
+                self.v.close()
+                self.mainLayout.removeWidget(self.v)
+                self.mainLayout.removeWidget(self.v1)
+                self.mainLayout.removeWidget(self.v2)
+
+                self._task = s.task
+                self.v = GuiParallelepiped(self._task, self)
+                self.mainLayout.addWidget(self.v)
 
 
 if __name__ == '__main__':

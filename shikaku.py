@@ -3,8 +3,8 @@
 import math
 import sys
 from copy import deepcopy
-from generator import Generator
-from solver import Solver
+from modules.generator import Generator
+from modules.solver import Solver
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
                              QHBoxLayout, QInputDialog, QAction)
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF, QMouseEvent

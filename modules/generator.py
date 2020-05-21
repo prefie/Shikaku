@@ -1,5 +1,5 @@
 from random import randint, choice
-from task import Task
+from modules.task import Task
 
 
 class Generator:

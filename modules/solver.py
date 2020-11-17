@@ -6,6 +6,7 @@ class Solver:
     def __init__(self, task):
         self.task = task
         self.task.solution = deepcopy(self.task.field)
+        self.task.answer = []
         self._blocks = self._completion_blocks()
 
     def solve(self, block_number=0):

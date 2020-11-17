@@ -2,12 +2,14 @@
 
 import math
 import sys
+import threading
 from copy import deepcopy
-from modules.generator import Generator
+from modules.task import Task
 from modules.solver import Solver
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
-                             QHBoxLayout, QInputDialog, QAction)
+                             QHBoxLayout, QFileDialog, QAction)
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF, QMouseEvent
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
 
 BACK_COLORS = {
@@ -45,6 +47,7 @@ class GuiParallelepiped(QFrame):
         self.pen.setWidth(3)
         self.brush = QBrush(QColor(255, 255, 0, 255))
 
+        self.painter = QPainter()
         self._rect = {}
         self._generate_rect()
         self._init_ui()
@@ -114,38 +117,46 @@ class GuiParallelepiped(QFrame):
             offset_x = self._task.size_x * 50
 
     def paintEvent(self, e):
-        painter = QPainter(self)
 
-        painter.begin(self)
-        self._draw(painter)
-        painter.end()
+        self.painter.begin(self)
+        self._draw()
+        self.painter.end()
 
-    def _draw(self, painter):
-        painter.setPen(self.pen)
-        painter.setBrush(self.brush)
+    def _draw(self):
+        self.painter.setPen(self.pen)
+        self.painter.setBrush(self.brush)
 
         for i in self._rect:
             id_color = self._task.solution[i[0]][i[1]][i[2]]
             color = BACK_COLORS[id_color % (len(BACK_COLORS) - 1)]
             brush = QBrush(color)
-            painter.setBrush(brush)
-            painter.drawPolygon(self._rect[i])
+            self.painter.setBrush(brush)
+            self.painter.drawPolygon(self._rect[i])
 
             if self._task.field[i[0]][i[1]][i[2]] != -1:
                 rect = self._rect[i].boundingRect()
-                painter.drawText(rect, Qt.AlignCenter,
-                                 str(self._task.field[i[0]][i[1]][i[2]]))
+                self.painter.drawText(rect, Qt.AlignCenter,
+                                      str(self._task.field[i[0]][i[1]][i[2]]))
+
+
+def thread(func):
+    """Запускает функцию в отдельном потоке"""
+    def wrapper(*args, **kwargs):
+        my_thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+        my_thread.start()
+
+    return wrapper
 
 
 class MainForm(QMainWindow):
+    solver_signal = QtCore.pyqtSignal(object, object)
+
     def __init__(self):
         super().__init__()
 
-        self.generator = Generator()
-        s = Solver(self.generator.generate(2, 3, 3))
-        s.solve()
+        self.solver_signal.connect(self._signal_handler)
 
-        self._task = s.task
+        self._task = None
         self._init_ui()
         self._flag = True
 
@@ -157,30 +168,31 @@ class MainForm(QMainWindow):
         centralWidget = QWidget()
         self.setCentralWidget(centralWidget)
         self.mainLayout = QHBoxLayout(centralWidget)
-        self.v = GuiParallelepiped(self._task, self)
-        self.mainLayout.addWidget(self.v)
 
+        self.v = QWidget()
         self.v1 = QWidget()
         self.v2 = QWidget()
 
-        exitAction = QAction('&Новая головоломка', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Показать решение новой головоломки')
-        exitAction.triggered.connect(self.showDialog)
+        newPuzzleAction = QAction('&Новая головоломка', self)
+        newPuzzleAction.setShortcut('Ctrl+Q')
+        newPuzzleAction.setStatusTip('Показать решение новой головоломки')
+        newPuzzleAction.triggered.connect(self.showDialog)
 
         self.statusBar()
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&Меню')
-        fileMenu.addAction(exitAction)
+        fileMenu.addAction(newPuzzleAction)
 
         self.show()
 
     def mousePressEvent(self, e: QMouseEvent):
         if self._flag:
+            if not isinstance(self.v, GuiParallelepiped):
+                return
             x = (e.x() - self.v.x()) // 50 - 1
             y = ((e.y() - self.v.y() -
-                  50*(self._task.size_z + 1)*math.sin(math.radians(30))) // 50)
+                  50 * (self._task.size_z + 1) * math.sin(math.radians(30))) // 50)
 
             if 0 <= y < self._task.size_y and 0 <= x < self._task.size_x - 1:
                 self.v.close()
@@ -203,6 +215,13 @@ class MainForm(QMainWindow):
             self._flag = True
 
     def showDialog(self):
+        a = QFileDialog.getOpenFileName(self, 'Open file', '')
+        filename = a[0]
+
+        if filename:
+            self._get_task(self.solver_signal, filename)
+
+        '''
         text, ok = QInputDialog.getText(self, 'Новая головоломка',
                                         'Введите три измерения через пробел')
         if ok:
@@ -223,7 +242,59 @@ class MainForm(QMainWindow):
 
                 self._task = s.task
                 self.v = GuiParallelepiped(self._task, self)
-                self.mainLayout.addWidget(self.v)
+                self.mainLayout.addWidget(self.v)'''
+
+    @thread
+    def _get_task(self, signal, filename):
+        with open(filename, 'r') as f:
+            data = f.read()
+            field = parse_puzzle(data)
+            s = Solver(Task(field))
+            result = s.solve()
+            signal.emit(result, s.task)
+
+    def _signal_handler(self, result, task):
+        if not result:
+            raise ValueError  # место этого надо обработку
+        self._task = task
+
+        self.v.close()
+        self.v1.close()
+        self.v2.close()
+        self.mainLayout.removeWidget(self.v)
+        self.mainLayout.removeWidget(self.v1)
+        self.mainLayout.removeWidget(self.v2)
+
+        self.v = GuiParallelepiped(self._task, self)
+        self.mainLayout.addWidget(self.v)
+
+
+def parse_puzzle(text):
+    field = text.split('\n\n')
+
+    error = ValueError('The puzzle is incorrect')
+
+    result = []
+    for x in range(len(field)):
+        plane = field[x].split('\n')
+        dy = []
+        for y in range(len(plane)):
+            line = plane[y].split()
+            dz = list(map(lambda i: -1 if i == '-' else int(i), line))
+
+            dy.append(dz)
+        result.append(dy)
+
+    count_dy = len(result[0])
+    count_dz = len(result[0][0])
+    for x in range(len(result)):
+        if len(result[x]) != count_dy:
+            raise error
+        for y in range(len(result)):
+            if len(result[x][y]) != count_dz:
+                raise error
+
+    return result
 
 
 if __name__ == '__main__':

@@ -6,25 +6,25 @@ class Generator:
     """Генератор головоломок Shikaku"""
     def __init__(self):
         """Создание генератора"""
-        self.field = None
-        self.solution = None
-        self.answer = None
+        self._field = None
+        self._solution = None
+        self._answer = None
 
     def generate(self, dx, dy, dz):
         """По указанным измерениям генерирует поле и ответ"""
         if dx < 1 or dy < 1 or dz < 1:
             raise ValueError
 
-        self.field =\
+        self._field =\
             [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
 
-        self.solution = \
+        self._solution = \
             [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
-        self.answer = []
+        self._answer = []
         for x in range(dx):
             for y in range(dy):
                 for z in range(dz):
-                    if self.solution[x][y][z] != -1:
+                    if self._solution[x][y][z] != -1:
                         continue
                     sx = randint(1, dx - x)
                     sy = randint(1, dy - y)
@@ -35,7 +35,7 @@ class Generator:
                         sz = randint(1, dz - z)
                     self._generate_answer(x, y, z, sx, sy, sz)
         self._completion_volume()
-        return Task(self.field)
+        return Task(self._field), Task(self._field, self._solution, self._answer)
 
     def _generate_answer(self, x, y, z, sx, sy, sz):
         """Заполняет field цветами и answer - блоками"""
@@ -43,16 +43,16 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    self.solution[x + i][y + j][z + k] = len(self.answer)
+                    self._solution[x + i][y + j][z + k] = len(self._answer)
                     block.append([x + i, y + j, z + k])
-        self.answer.append(block)
+        self._answer.append(block)
 
     def _completion_volume(self):
         """Заполняет поле объёмами и пустыми клетками"""
-        for block in self.answer:
+        for block in self._answer:
             v = len(block)
             x, y, z = choice(block)
-            self.field[x][y][z] = v
+            self._field[x][y][z] = v
 
     def _check_cells(self, x, y, z, sx, sy, sz):
         """Возвращает True, если хотя бы одна клетка
@@ -60,6 +60,6 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    if self.solution[x + i][y + j][z + k] != -1:
+                    if self._solution[x + i][y + j][z + k] != -1:
                         return True
         return False

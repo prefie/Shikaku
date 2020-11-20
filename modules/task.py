@@ -1,6 +1,3 @@
-from copy import deepcopy
-
-
 class Task:
     """Класс задачи-головоломки Shikaku"""
     def __init__(self, field, solution=None, answer=None):

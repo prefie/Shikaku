@@ -3,11 +3,13 @@ from copy import deepcopy
 
 class Solver:
     """Решатель головоломки Shikaku"""
+
     def __init__(self, task):
         self.task = task
         self.task.solution = deepcopy(self.task.field)
         self.task.answer = []
         self._blocks = self._completion_blocks()
+        #self.max_status = self._get_max_count()
 
     def solve(self, block_number=0):
         """Рекурсивно решает головоломку Shikaku"""
@@ -56,6 +58,12 @@ class Solver:
                         blocks.append(
                             Block(x, y, z, self.task.field[x][y][z]))
         return blocks
+
+    '''def _get_max_count(self):
+        count = 1
+        for block in self._blocks:
+            count *= len(block.sides) * block.value
+        return count'''
 
 
 class Block:

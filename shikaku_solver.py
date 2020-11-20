@@ -7,7 +7,7 @@ from copy import deepcopy
 from modules.task import Task
 from modules.solver import Solver
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
-                             QHBoxLayout, QFileDialog, QAction)
+                             QHBoxLayout, QFileDialog, QAction, QScrollBar)
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF, QMouseEvent
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
@@ -173,6 +173,12 @@ class MainForm(QMainWindow):
         self.v1 = QWidget()
         self.v2 = QWidget()
 
+        '''self.scroll_x = QScrollBar()
+        self.mainLayout.addWidget(self.scroll_x)
+        self.scroll_x.setMinimum(1)
+        self.scroll_x.setMaximum(10)
+        self.scroll_x.valueChanged.connect(lambda x: print(self.scroll_x.value()))'''
+
         newPuzzleAction = QAction('&Новая головоломка', self)
         newPuzzleAction.setShortcut('Ctrl+Q')
         newPuzzleAction.setStatusTip('Показать решение новой головоломки')
@@ -290,7 +296,7 @@ def parse_puzzle(text):
     for x in range(len(result)):
         if len(result[x]) != count_dy:
             raise error
-        for y in range(len(result)):
+        for y in range(len(result[x])):
             if len(result[x][y]) != count_dz:
                 raise error
 

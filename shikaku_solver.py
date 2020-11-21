@@ -7,7 +7,7 @@ from copy import deepcopy
 from modules.task import Task
 from modules.solver import Solver
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
-                             QHBoxLayout, QFileDialog, QAction, QScrollBar)
+                             QHBoxLayout, QFileDialog, QAction, QScrollBar, QVBoxLayout, QGridLayout)
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF, QMouseEvent
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
@@ -167,11 +167,31 @@ class MainForm(QMainWindow):
 
         centralWidget = QWidget()
         self.setCentralWidget(centralWidget)
-        self.mainLayout = QHBoxLayout(centralWidget)
+        self.mainLayout = QVBoxLayout(centralWidget)
+        self.hBox = QHBoxLayout()
+        self.mainLayout.addLayout(self.hBox)
 
-        self.v = QWidget()
-        self.v1 = QWidget()
-        self.v2 = QWidget()
+        self.hBox.addStretch(1)
+        self.grid = QGridLayout()
+        self.hBox.addLayout(self.grid)
+        self.hBox.addStretch(1)
+
+        self.parallelepipeds = []
+
+        self.scroll_x = QScrollBar(Qt.Horizontal)
+        self.mainLayout.addWidget(self.scroll_x)
+        self.scroll_x.setRange(0, 0)
+        self.scroll_z = QScrollBar()
+        self.hBox.addWidget(self.scroll_z)
+        self.scroll_z.setRange(0, 0)
+        self.scroll_y = QScrollBar()
+        self.scroll_y.setMinimum(1)
+        self.scroll_y.setRange(1, 1)
+        self.hBox.addWidget(self.scroll_y)
+
+        self.scroll_x.valueChanged.connect(self.scroll_handle)
+        self.scroll_y.valueChanged.connect(self.scroll_handle)
+        self.scroll_z.valueChanged.connect(self.scroll_handle)
 
         '''self.scroll_x = QScrollBar()
         self.mainLayout.addWidget(self.scroll_x)
@@ -192,7 +212,7 @@ class MainForm(QMainWindow):
 
         self.show()
 
-    def mousePressEvent(self, e: QMouseEvent):
+    '''def mousePressEvent(self, e: QMouseEvent):
         if self._flag:
             if not isinstance(self.v, GuiParallelepiped):
                 return
@@ -204,21 +224,21 @@ class MainForm(QMainWindow):
                 self.v.close()
 
                 self.v1 = GuiParallelepiped(self._task, 0, x, self)
-                self.mainLayout.addWidget(self.v1)
+                self.grid.addWidget(self.v1, 0, 0)
                 self.v2 = GuiParallelepiped(self._task, x + 1,
                                             self._task.size_x - 1, self)
-                self.mainLayout.addWidget(self.v2)
+                self.grid.addWidget(self.v2, 0, 1)
 
                 self._flag = False
         else:
-            self.mainLayout.removeWidget(self.v1)
+            self.grid.removeWidget(self.v1)
             self.v1.close()
 
-            self.mainLayout.removeWidget(self.v2)
+            self.grid.removeWidget(self.v2)
             self.v2.close()
 
             self.v.show()
-            self._flag = True
+            self._flag = True'''
 
     def showDialog(self):
         a = QFileDialog.getOpenFileName(self, 'Open file', '')
@@ -261,18 +281,85 @@ class MainForm(QMainWindow):
 
     def _signal_handler(self, result, task):
         if not result:
-            raise ValueError  # место этого надо обработку
+            raise ValueError  # Вместо этого надо обработку
         self._task = task
 
-        self.v.close()
-        self.v1.close()
-        self.v2.close()
-        self.mainLayout.removeWidget(self.v)
-        self.mainLayout.removeWidget(self.v1)
-        self.mainLayout.removeWidget(self.v2)
+        for p in self.parallelepipeds:
+            p.close()
+            self.grid.removeWidget(p)
 
-        self.v = GuiParallelepiped(self._task, self)
-        self.mainLayout.addWidget(self.v)
+        self.parallelepipeds.clear()
+
+        self.scroll_x.setRange(0, self._task.size_x)
+        self.scroll_y.setRange(1, self._task.size_y)
+        self.scroll_z.setRange(0, self._task.size_z)
+        self.scroll_y.setValue(self._task.size_y)
+
+    def scroll_handle(self):
+        for p in self.parallelepipeds:
+            p.close()
+            self.grid.removeWidget(p)
+        self.parallelepipeds.clear()
+
+        dx = self.scroll_x.value()
+        dy = self.scroll_y.value()
+        dz = self.scroll_z.value()
+
+        tasks = [i for i in self.cut_task(self._task, dx, dy, dz)]
+        if tasks[0] is not None:
+            gui = GuiParallelepiped(tasks[0])
+            self.parallelepipeds.append(gui)
+            self.grid.addWidget(gui, 1, 0)
+        if tasks[1] is not None:
+            gui = GuiParallelepiped(tasks[1])
+            self.parallelepipeds.append(gui)
+            self.grid.addWidget(gui, 0, 0)
+        if tasks[2] is not None:
+            gui = GuiParallelepiped(tasks[2])
+            self.parallelepipeds.append(gui)
+            self.grid.addWidget(gui, 1, 1)
+        if tasks[3] is not None:
+            gui = GuiParallelepiped(tasks[3])
+            self.parallelepipeds.append(gui)
+            self.grid.addWidget(gui, 0, 1)
+
+    def cut_task(self, task, dx=0, dy=0, dz=0):
+        def is_empty(array):
+            if not array:
+                return True
+            for x in array:
+                for y in x:
+                    if not y:
+                        return True
+            return False
+
+        task = deepcopy(task)
+        for x in range(len(task.field)):  # Глубина
+            task.field[x] = task.field[x][:dy]
+            task.solution[x] = task.solution[x][:dy]
+
+        fields = [task.field[:dx], task.field[dx:]]
+        solutions = [task.solution[:dx], task.solution[dx:]]
+
+        for i in range(len(fields)):
+            field = deepcopy(fields[i])
+            solution = deepcopy(solutions[i])
+            for x in range(len(field)):
+                for y in range(len(field[x])):
+                    field[x][y] = fields[i][x][y][:dz]
+                    solution[x][y] = solutions[i][x][y][:dz]
+
+            yield None if is_empty(field) else Task(field, solution)
+
+            field = deepcopy(fields[i])
+            solution = deepcopy(solutions[i])
+            for x in range(len(field)):
+                for y in range(len(field[x])):
+                    field[x][y] = fields[i][x][y][dz:]
+                    solution[x][y] = solutions[i][x][y][dz:]
+
+            yield None if is_empty(field) else Task(field, solution)
+
 
 
 def parse_puzzle(text):

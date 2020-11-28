@@ -233,45 +233,47 @@ class MainForm(QMainWindow):
             # raise ValueError
         self._task = task
 
-        for p in self.parallelepipeds:
-            p.close()
-            self.grid.removeWidget(p)
-
-        self.parallelepipeds.clear()
+        self._clear_parallelepipeds()
 
         self.scroll_x.setRange(0, self._task.size_x)
         self.scroll_y.setRange(0, self._task.size_y)
         self.scroll_z.setRange(1, self._task.size_z)
         self.scroll_z.setValue(self._task.size_z)
 
-    def scroll_handle(self):
+    def _clear_parallelepipeds(self):
         for p in self.parallelepipeds:
             p.close()
             self.grid.removeWidget(p)
         self.parallelepipeds.clear()
+
+    def scroll_handle(self):
+        self._clear_parallelepipeds()
 
         dx = self.scroll_x.value()
         dy = self.scroll_y.value()
         dz = self.scroll_z.value()
 
         tasks = [i for i in self.cut_task(self._task, dx, dy, dz)]
+        if tasks[1] is not None:
+            gui = GuiParallelepiped(tasks[1])
+            self.parallelepipeds.append(gui)
+            self.grid.addWidget(gui, 1, 0)
+
         if tasks[0] is not None:
             gui = GuiParallelepiped(tasks[0])
             self.parallelepipeds.append(gui)
             self.grid.addWidget(gui, )
             self.grid.addWidget(gui, 0, 0)
-        if tasks[1] is not None:
-            gui = GuiParallelepiped(tasks[1])
-            self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 1, 0)
-        if tasks[2] is not None:
-            gui = GuiParallelepiped(tasks[2])
-            self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 0, 1)
+
         if tasks[3] is not None:
             gui = GuiParallelepiped(tasks[3])
             self.parallelepipeds.append(gui)
             self.grid.addWidget(gui, 1, 1)
+
+        if tasks[2] is not None:
+            gui = GuiParallelepiped(tasks[2])
+            self.parallelepipeds.append(gui)
+            self.grid.addWidget(gui, 0, 1)
 
     def cut_task(self, task, dx=0, dy=0, dz=0):
         def is_empty(array):

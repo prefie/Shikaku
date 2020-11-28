@@ -183,13 +183,16 @@ class MainForm(QMainWindow):
         self.scroll_x = QScrollBar(Qt.Horizontal)
         self.mainLayout.addWidget(self.scroll_x)
         self.scroll_x.setRange(0, 0)
-        self.scroll_z = QScrollBar()
-        self.hBox.addWidget(self.scroll_z)
-        self.scroll_z.setRange(0, 0)
+
         self.scroll_y = QScrollBar()
-        self.scroll_y.setMinimum(1)
-        self.scroll_y.setRange(1, 1)
+        self.scroll_y.setRange(0, 0)
+
+        self.scroll_z = QScrollBar()
+        self.scroll_z.setRange(1, 1)
+        self.scroll_z.setMinimum(1)
         self.hBox.addWidget(self.scroll_y)
+
+        self.hBox.addWidget(self.scroll_z)
 
         self.scroll_x.valueChanged.connect(self.scroll_handle)
         self.scroll_y.valueChanged.connect(self.scroll_handle)
@@ -237,9 +240,9 @@ class MainForm(QMainWindow):
         self.parallelepipeds.clear()
 
         self.scroll_x.setRange(0, self._task.size_x)
-        self.scroll_y.setRange(1, self._task.size_y)
-        self.scroll_z.setRange(0, self._task.size_z)
-        self.scroll_y.setValue(self._task.size_y)
+        self.scroll_y.setRange(0, self._task.size_y)
+        self.scroll_z.setRange(1, self._task.size_z)
+        self.scroll_z.setValue(self._task.size_z)
 
     def scroll_handle(self):
         for p in self.parallelepipeds:
@@ -255,34 +258,38 @@ class MainForm(QMainWindow):
         if tasks[0] is not None:
             gui = GuiParallelepiped(tasks[0])
             self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 1, 0)
+            self.grid.addWidget(gui, )
+            self.grid.addWidget(gui, 0, 0)
         if tasks[1] is not None:
             gui = GuiParallelepiped(tasks[1])
             self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 0, 0)
+            self.grid.addWidget(gui, 1, 0)
         if tasks[2] is not None:
             gui = GuiParallelepiped(tasks[2])
             self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 1, 1)
+            self.grid.addWidget(gui, 0, 1)
         if tasks[3] is not None:
             gui = GuiParallelepiped(tasks[3])
             self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 0, 1)
+            self.grid.addWidget(gui, 1, 1)
 
     def cut_task(self, task, dx=0, dy=0, dz=0):
         def is_empty(array):
             if not array:
                 return True
             for x in array:
+                if not x:
+                    return True
                 for y in x:
                     if not y:
                         return True
             return False
 
         task = deepcopy(task)
-        for x in range(len(task.field)):  # Глубина
-            task.field[x] = task.field[x][:dy]
-            task.solution[x] = task.solution[x][:dy]
+        for x in range(task.size_x):  # Глубина
+            for y in range(task.size_y):
+                task.field[x][y] = task.field[x][y][:dz]
+                task.solution[x][y] = task.solution[x][y][:dz]
 
         fields = [task.field[:dx], task.field[dx:]]
         solutions = [task.solution[:dx], task.solution[dx:]]
@@ -291,18 +298,16 @@ class MainForm(QMainWindow):
             field = deepcopy(fields[i])
             solution = deepcopy(solutions[i])
             for x in range(len(field)):
-                for y in range(len(field[x])):
-                    field[x][y] = fields[i][x][y][:dz]
-                    solution[x][y] = solutions[i][x][y][:dz]
+                field[x] = fields[i][x][:dy]
+                solution[x] = solutions[i][x][:dy]
 
             yield None if is_empty(field) else Task(field, solution)
 
             field = deepcopy(fields[i])
             solution = deepcopy(solutions[i])
             for x in range(len(field)):
-                for y in range(len(field[x])):
-                    field[x][y] = fields[i][x][y][dz:]
-                    solution[x][y] = solutions[i][x][y][dz:]
+                field[x] = fields[i][x][dy:]
+                solution[x] = solutions[i][x][dy:]
 
             yield None if is_empty(field) else Task(field, solution)
 

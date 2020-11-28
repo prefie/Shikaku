@@ -14,10 +14,12 @@ def parse_args():
                         help='width of the Shikaku field')
     parser.add_argument('-D', '--depth', type=int, required=True,
                         help='depth of the Shikaku field')
-    parser.add_argument('-P', '--puzzle', type=str, default='shikaku_puzzle.txt',
+    parser.add_argument('-P', '--puzzle', type=str,
+                        default='shikaku_puzzle.txt',
                         help="save puzzle in file",
                         metavar='PATH')
-    parser.add_argument('-S', '--solution', type=str, default='shikaku_solution.txt',
+    parser.add_argument('-S', '--solution', type=str,
+                        default='shikaku_solution.txt',
                         help="save solution in file",
                         metavar='PATH')
 
@@ -33,7 +35,9 @@ def save_in_file(filename, field):
     with open(filename, 'w') as f:
         for i in range(len(field)):
             for j in range(len(field[i])):
-                f.write(' '.join(map(str, map(lambda x: '-' if x == -1 else x, field[i][j]))))
+                f.write(' '.join(map(
+                    str,
+                    map(lambda x: '-' if x == -1 else x, field[i][j]))))
                 if j != len(field[i]) - 1:
                     f.write('\n')
             if i != len(field) - 1:

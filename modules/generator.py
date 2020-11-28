@@ -4,6 +4,7 @@ from modules.task import Task
 
 class Generator:
     """Генератор головоломок Shikaku"""
+
     def __init__(self):
         """Создание генератора"""
         self._field = None
@@ -15,7 +16,7 @@ class Generator:
         if dx < 1 or dy < 1 or dz < 1:
             raise ValueError
 
-        self._field =\
+        self._field = \
             [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
 
         self._solution = \
@@ -35,7 +36,8 @@ class Generator:
                         sz = randint(1, dz - z)
                     self._generate_answer(x, y, z, sx, sy, sz)
         self._completion_volume()
-        return Task(self._field), Task(self._field, self._solution, self._answer)
+        return (Task(self._field),
+                Task(self._field, self._solution, self._answer))
 
     def _generate_answer(self, x, y, z, sx, sy, sz):
         """Заполняет field цветами и answer - блоками"""

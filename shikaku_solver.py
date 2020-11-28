@@ -7,8 +7,9 @@ from copy import deepcopy
 from modules.task import Task
 from modules.solver import Solver
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
-                             QHBoxLayout, QFileDialog, QAction, QScrollBar, QVBoxLayout, QGridLayout)
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF, QMouseEvent
+                             QHBoxLayout, QFileDialog, QAction, QScrollBar,
+                             QVBoxLayout, QGridLayout)
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
 
@@ -141,6 +142,7 @@ class GuiParallelepiped(QFrame):
 
 def thread(func):
     """Запускает функцию в отдельном потоке"""
+
     def wrapper(*args, **kwargs):
         my_thread = threading.Thread(target=func, args=args, kwargs=kwargs)
         my_thread.start()
@@ -193,12 +195,6 @@ class MainForm(QMainWindow):
         self.scroll_y.valueChanged.connect(self.scroll_handle)
         self.scroll_z.valueChanged.connect(self.scroll_handle)
 
-        '''self.scroll_x = QScrollBar()
-        self.mainLayout.addWidget(self.scroll_x)
-        self.scroll_x.setMinimum(1)
-        self.scroll_x.setMaximum(10)
-        self.scroll_x.valueChanged.connect(lambda x: print(self.scroll_x.value()))'''
-
         newPuzzleAction = QAction('&Новая головоломка', self)
         newPuzzleAction.setShortcut('Ctrl+Q')
         newPuzzleAction.setStatusTip('Показать решение новой головоломки')
@@ -212,63 +208,12 @@ class MainForm(QMainWindow):
 
         self.show()
 
-    '''def mousePressEvent(self, e: QMouseEvent):
-        if self._flag:
-            if not isinstance(self.v, GuiParallelepiped):
-                return
-            x = (e.x() - self.v.x()) // 50 - 1
-            y = ((e.y() - self.v.y() -
-                  50 * (self._task.size_z + 1) * math.sin(math.radians(30))) // 50)
-
-            if 0 <= y < self._task.size_y and 0 <= x < self._task.size_x - 1:
-                self.v.close()
-
-                self.v1 = GuiParallelepiped(self._task, 0, x, self)
-                self.grid.addWidget(self.v1, 0, 0)
-                self.v2 = GuiParallelepiped(self._task, x + 1,
-                                            self._task.size_x - 1, self)
-                self.grid.addWidget(self.v2, 0, 1)
-
-                self._flag = False
-        else:
-            self.grid.removeWidget(self.v1)
-            self.v1.close()
-
-            self.grid.removeWidget(self.v2)
-            self.v2.close()
-
-            self.v.show()
-            self._flag = True'''
-
     def showDialog(self):
         a = QFileDialog.getOpenFileName(self, 'Open file', '')
         filename = a[0]
 
         if filename:
             self._get_task(self.solver_signal, filename)
-
-        '''
-        text, ok = QInputDialog.getText(self, 'Новая головоломка',
-                                        'Введите три измерения через пробел')
-        if ok:
-            try:
-                x, y, z = map(int, str(text).split())
-            except Exception:
-                pass
-            else:
-                s = Solver(self.generator.generate(x, y, z))
-                s.solve()
-
-                self.v1.close()
-                self.v2.close()
-                self.v.close()
-                self.mainLayout.removeWidget(self.v)
-                self.mainLayout.removeWidget(self.v1)
-                self.mainLayout.removeWidget(self.v2)
-
-                self._task = s.task
-                self.v = GuiParallelepiped(self._task, self)
-                self.mainLayout.addWidget(self.v)'''
 
     @thread
     def _get_task(self, signal, filename):
@@ -281,7 +226,8 @@ class MainForm(QMainWindow):
 
     def _signal_handler(self, result, task):
         if not result:
-            raise ValueError  # Вместо этого надо обработку
+            return
+            # raise ValueError
         self._task = task
 
         for p in self.parallelepipeds:
@@ -359,7 +305,6 @@ class MainForm(QMainWindow):
                     solution[x][y] = solutions[i][x][y][dz:]
 
             yield None if is_empty(field) else Task(field, solution)
-
 
 
 def parse_puzzle(text):

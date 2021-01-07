@@ -1,17 +1,21 @@
 #!/usr/bin/python3
 
 import math
+import os
 import sys
 import threading
 from copy import deepcopy
-from modules.task import Task
-from modules.solver import Solver
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
-                             QHBoxLayout, QFileDialog, QAction, QScrollBar,
-                             QVBoxLayout, QGridLayout)
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF
+
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
+                             QHBoxLayout, QFileDialog, QAction, QVBoxLayout, QGridLayout, QSlider, QLineEdit,
+                             QPushButton, QLabel)
+
+import shikaku_generator
+from modules.solver import Solver
+from modules.task import Task
 
 BACK_COLORS = {
     -1: QColor('white'),
@@ -26,28 +30,24 @@ BACK_COLORS = {
     8: QColor('grey'),
     9: QColor('maroon'),
     10: QColor('red'),
-    11: QColor('white'),
+    11: QColor('darkGreen'),
     12: QColor('darkCyan'),
     13: QColor('darkBlue'),
-    14: QColor('darkGreen'),
+    14: QColor('white')
 }
 
 
 class GuiParallelepiped(QFrame):
 
-    def __init__(self, task, cut_x1=None, cut_x2=None, parent=None):
+    def __init__(self, task, parent=None):
         super().__init__(parent)
         self._task = deepcopy(task)
-
-        if cut_x1 is not None and cut_x2 is not None:
-            self._task.field = self._task.field[cut_x1:cut_x2 + 1]
-            self._task.solution = self._task.solution[cut_x1:cut_x2 + 1]
-            self._task.size_x = cut_x2 - cut_x1 + 1
 
         self.pen = QPen(QColor(0, 0, 0))
         self.pen.setWidth(3)
         self.brush = QBrush(QColor(255, 255, 0, 255))
 
+        self._size_cube = 50
         self.painter = QPainter()
         self._rect = {}
         self._generate_rect()
@@ -76,46 +76,46 @@ class GuiParallelepiped(QFrame):
 
     def _init_ui(self):
         self.setFixedSize(
-            (50 * self._task.size_x +
-             50 * self._task.size_z * math.cos(math.radians(30)) + 2),
-            (50 * self._task.size_y +
-             50 * self._task.size_z * math.sin(math.radians(30)) + 2))
+            (self._size_cube * self._task.size_x +
+             self._size_cube * self._task.size_z * math.cos(math.radians(30)) + 2),
+            (self._size_cube * self._task.size_y +
+             self._size_cube * self._task.size_z * math.sin(math.radians(30)) + 2))
 
     def _generate_rect(self):
         offset_x = 0
-        offset_y = 50 * self._task.size_z * math.sin(math.radians(30))
+        offset_y = self._size_cube * self._task.size_z * math.sin(math.radians(30))
         angle = 30
         for z in range(self._task.size_z):
             for x in range(self._task.size_x):
-                rec = self.create_rect(50, 50, angle, 0, offset_x, offset_y)
+                rec = self.create_rect(self._size_cube, self._size_cube, angle, 0, offset_x, offset_y)
                 self._rect[(x, 0, z, 'xz')] = rec
-                offset_x += 50
-            offset_y -= 50 * math.sin(math.radians(angle))
-            offset_x = 50 * math.cos(math.radians(angle)) * (z + 1)
+                offset_x += self._size_cube
+            offset_y -= self._size_cube * math.sin(math.radians(angle))
+            offset_x = self._size_cube * math.cos(math.radians(angle)) * (z + 1)
 
         offset_x = 0
-        offset_y = 50 * self._task.size_z * math.sin(math.radians(30)) + 50
+        offset_y = self._size_cube * self._task.size_z * math.sin(math.radians(30)) + self._size_cube
         angle = 90
         for y in range(self._task.size_y):
             for x in range(self._task.size_x):
-                rec = self.create_rect(50, 50, angle, 0, offset_x, offset_y)
+                rec = self.create_rect(self._size_cube, self._size_cube, angle, 0, offset_x, offset_y)
                 self._rect[(x, y, 0, 'xy')] = rec
-                offset_x += 50
-            offset_y += 50 * math.sin(math.radians(angle))
+                offset_x += self._size_cube
+            offset_y += self._size_cube * math.sin(math.radians(angle))
             offset_x = 0
 
-        offset_x = self._task.size_x * 50
-        offset_y = 50 * self._task.size_z * math.sin(math.radians(30))
+        offset_x = self._task.size_x * self._size_cube
+        offset_y = self._size_cube * self._task.size_z * math.sin(math.radians(30))
         angle = 30
         for y in range(self._task.size_y):
             for z in range(self._task.size_z):
-                rec = self.create_rect(50, 50, angle, 90, offset_x, offset_y)
+                rec = self.create_rect(self._size_cube, self._size_cube, angle, 90, offset_x, offset_y)
                 self._rect[(self._task.size_x - 1, y, z, 'yz')] = rec
-                offset_x += 50 * math.cos(math.radians(angle))
-                offset_y -= 50 * math.sin(math.radians(angle))
-            offset_y = (50 * self._task.size_z * math.sin(math.radians(30)) +
-                        50 * (y + 1))
-            offset_x = self._task.size_x * 50
+                offset_x += self._size_cube * math.cos(math.radians(angle))
+                offset_y -= self._size_cube * math.sin(math.radians(angle))
+            offset_y = (self._size_cube * self._task.size_z * math.sin(math.radians(30)) +
+                        self._size_cube * (y + 1))
+            offset_x = self._task.size_x * self._size_cube
 
     def paintEvent(self, e):
 
@@ -150,13 +150,85 @@ def thread(func):
     return wrapper
 
 
+class input_dialog(QWidget):
+    def __init__(self):
+        super(input_dialog, self).__init__()
+        self.setWindowTitle('Создание новой головоломки Shikaku')
+
+        self.width = QLineEdit(self)
+        self.height = QLineEdit()
+        self.depth = QLineEdit()
+        self.puzzle_name = QLineEdit()
+        self.solution_name = QLineEdit()
+
+        cancel_button = QPushButton("Отмена")
+        cancel_button.clicked.connect(self.close)
+        continue_button = QPushButton("Создать")
+        continue_button.clicked.connect(self._continue_handler)
+
+        main_layout = QGridLayout()
+        main_layout.addWidget(QLabel('Ширина'), 0, 0)
+        main_layout.addWidget(self.width, 0, 1)
+
+        main_layout.addWidget(QLabel('Высота'), 1, 0)
+        main_layout.addWidget(self.height, 1, 1)
+
+        main_layout.addWidget(QLabel('Глубина'), 2, 0)
+        main_layout.addWidget(self.depth, 2, 1)
+
+        main_layout.addWidget(QLabel('Имя файла головоломки'), 3, 0)
+        main_layout.addWidget(self.puzzle_name, 3, 1)
+
+        main_layout.addWidget(QLabel('Имя файла решения'), 4, 0)
+        main_layout.addWidget(self.solution_name, 4, 1)
+
+        self.path = QLabel()
+        self.path.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        main_layout.addWidget(QLabel('Директория для сохранения\nголоволомки и её решения:'), 5, 0)
+        main_layout.addWidget(self.path, 5, 1)
+        dir_button = QPushButton('...')
+        dir_button.clicked.connect(self._path_handler)
+        main_layout.addWidget(dir_button, 5, 2)
+
+        main_layout.addWidget(cancel_button, 6, 1)
+        main_layout.addWidget(continue_button, 6, 2)
+
+        self.width.setPlaceholderText('1')
+        self.height.setPlaceholderText('1')
+        self.depth.setPlaceholderText('1')
+        self.puzzle_name.setPlaceholderText('shikaku_puzzle.txt')
+        self.solution_name.setPlaceholderText('shikaku_solution.txt')
+        self.path.setText(os.path.abspath(os.curdir))
+
+        self.setLayout(main_layout)
+
+    def _continue_handler(self):
+        try:
+            w = int(self.width.text()) if self.width.text() else 1
+            h = int(self.height.text()) if self.width.text() else 1
+            d = int(self.depth.text()) if self.width.text() else 1
+        except ValueError:
+            # TODO: Если некорректные параметры?
+            return
+        puzzle_name = self.path.text() + '\\'
+        puzzle_name += self.puzzle_name.text() if self.puzzle_name.text() else 'shikaku_puzzle.txt'
+        solution_name = self.path.text() + '\\'
+        solution_name += self.solution_name.text() if self.solution_name.text() else 'shikaku_solution.txt'
+        shikaku_generator.generate_puzzle(w, h, d, puzzle_name, solution_name)
+        self.close()
+
+    def _path_handler(self):
+        path = QFileDialog.getExistingDirectory()
+        self.path.setText(path)
+
+
 class MainForm(QMainWindow):
-    solver_signal = QtCore.pyqtSignal(object, object)
+    solver_signal = QtCore.pyqtSignal()
 
     def __init__(self):
         super().__init__()
 
-        self.solver_signal.connect(self._signal_handler)
+        self.solver_signal.connect(self._update)
 
         self._task = None
         self._init_ui()
@@ -180,65 +252,99 @@ class MainForm(QMainWindow):
 
         self.parallelepipeds = []
 
-        self.scroll_x = QScrollBar(Qt.Horizontal)
+        self.scroll_x = QSlider(Qt.Horizontal)
         self.mainLayout.addWidget(self.scroll_x)
         self.scroll_x.setRange(0, 0)
 
-        self.scroll_y = QScrollBar()
+        self.scroll_y = QSlider()
         self.scroll_y.setRange(0, 0)
 
-        self.scroll_z = QScrollBar()
+        self.scroll_z = QSlider()
         self.scroll_z.setRange(1, 1)
         self.scroll_z.setMinimum(1)
         self.hBox.addWidget(self.scroll_y)
-
         self.hBox.addWidget(self.scroll_z)
 
-        self.scroll_x.valueChanged.connect(self.scroll_handle)
-        self.scroll_y.valueChanged.connect(self.scroll_handle)
-        self.scroll_z.valueChanged.connect(self.scroll_handle)
+        self._activate_scrolls()  # !!!!!!!!!!!!!!!
 
-        newPuzzleAction = QAction('&Новая головоломка', self)
-        newPuzzleAction.setShortcut('Ctrl+Q')
-        newPuzzleAction.setStatusTip('Показать решение новой головоломки')
-        newPuzzleAction.triggered.connect(self.showDialog)
+        create_action = QAction('&Создать', self)
+        create_action.setShortcut('Ctrl+N')
+        create_action.setStatusTip('Сгенерировать новую головоломку')
+        create_action.triggered.connect(self._create_handler)
+
+        open_file_action = QAction('&Открыть', self)
+        open_file_action.setShortcut('Ctrl+O')
+        open_file_action.setStatusTip('Открыть файл с головоломкой')
+        open_file_action.triggered.connect(self._open_file_dialog)
+
+        solve_action = QAction('&Решить', self)
+        solve_action.setShortcut('Ctrl+S')
+        solve_action.setStatusTip('Решить головоломку')
+        solve_action.triggered.connect(self.solver_handler)
 
         self.statusBar()
 
         menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&Меню')
-        fileMenu.addAction(newPuzzleAction)
+        file_menu = menubar.addMenu('&Меню')
+        file_menu.addAction(create_action)
+        file_menu.addAction(open_file_action)
+        file_menu.addAction(solve_action)
 
         self.show()
 
-    def showDialog(self):
+    def _activate_scrolls(self):
+        self.scroll_x.valueChanged.connect(self._scroll_handler)
+        self.scroll_y.valueChanged.connect(self._scroll_handler)
+        self.scroll_z.valueChanged.connect(self._scroll_handler)
+
+    def _deactivate_scrolls(self):
+        self.scroll_x.valueChanged.disconnect(self._scroll_handler)
+        self.scroll_y.valueChanged.disconnect(self._scroll_handler)
+        self.scroll_z.valueChanged.disconnect(self._scroll_handler)
+
+    def _open_file_dialog(self):
         a = QFileDialog.getOpenFileName(self, 'Open file', '')
         filename = a[0]
 
         if filename:
-            self._get_task(self.solver_signal, filename)
+            self._get_task(filename)
 
-    @thread
+    def _create_handler(self):
+        self.new_window = input_dialog()
+        self.new_window.show()
+
+    def _get_task(self, filename):
+        with open(filename, 'r') as f:
+            data = f.read()
+            try:
+                field = parse_puzzle(data)
+            except ValueError as e:
+                pass  # TODO: если в файле не головоломка?
+            self._task = Task(field, solution=field)
+
+            self._update()
+
+    ''''@thread
     def _get_task(self, signal, filename):
         with open(filename, 'r') as f:
             data = f.read()
             field = parse_puzzle(data)
             s = Solver(Task(field))
             result = s.solve()
-            signal.emit(result, s.task)
+            signal.emit(result, s.task)'''
 
-    def _signal_handler(self, result, task):
+    '''def _signal_handler(self, result, task):
         if not result:
             return
-            # raise ValueError
+            # TODO: Если головоломка не решена?
         self._task = task
 
         self._clear_parallelepipeds()
 
-        self.scroll_x.setRange(0, self._task.size_x)
-        self.scroll_y.setRange(0, self._task.size_y)
+        self.scroll_x.setRange(0, self._task.size_x - 1)
+        self.scroll_y.setRange(0, self._task.size_y - 1)
         self.scroll_z.setRange(1, self._task.size_z)
-        self.scroll_z.setValue(self._task.size_z)
+        self.scroll_z.setValue(self._task.size_z)'''
 
     def _clear_parallelepipeds(self):
         for p in self.parallelepipeds:
@@ -246,36 +352,60 @@ class MainForm(QMainWindow):
             self.grid.removeWidget(p)
         self.parallelepipeds.clear()
 
-    def scroll_handle(self):
+    def _update(self):
+        self._deactivate_scrolls()
+
+        self._clear_parallelepipeds()
+        paral = GuiParallelepiped(self._task)
+        self.parallelepipeds.append(paral)
+        self.grid.addWidget(paral, 0, 0)
+
+        self.scroll_x.setRange(0, self._task.size_x - 1)
+        self.scroll_y.setRange(0, self._task.size_y - 1)
+        self.scroll_z.setRange(1, self._task.size_z)
+        self.scroll_x.setValue(0)
+        self.scroll_y.setValue(0)
+        self.scroll_z.setValue(self._task.size_z)
+
+        self._activate_scrolls()
+
+    @thread
+    def solver_handler(self, _):
+        task = deepcopy(self._task)
+        solver = Solver(task)
+        solver.solve()
+        self._task = task
+        self.solver_signal.emit()
+
+    def _scroll_handler(self):
         self._clear_parallelepipeds()
 
         dx = self.scroll_x.value()
         dy = self.scroll_y.value()
         dz = self.scroll_z.value()
 
-        tasks = [i for i in self.cut_task(self._task, dx, dy, dz)]
+        tasks = [i for i in self._cut_task(self._task, dx, dy, dz)]
         if tasks[1] is not None:
-            gui = GuiParallelepiped(tasks[1])
-            self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 1, 0)
+            paral = GuiParallelepiped(tasks[1])
+            self.parallelepipeds.append(paral)
+            self.grid.addWidget(paral, 1, 0)
 
         if tasks[0] is not None:
-            gui = GuiParallelepiped(tasks[0])
-            self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, )
-            self.grid.addWidget(gui, 0, 0)
+            paral = GuiParallelepiped(tasks[0])
+            self.parallelepipeds.append(paral)
+            self.grid.addWidget(paral, 0, 0)
 
         if tasks[3] is not None:
-            gui = GuiParallelepiped(tasks[3])
-            self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 1, 1)
+            paral = GuiParallelepiped(tasks[3])
+            self.parallelepipeds.append(paral)
+            self.grid.addWidget(paral, 1, 1)
 
         if tasks[2] is not None:
-            gui = GuiParallelepiped(tasks[2])
-            self.parallelepipeds.append(gui)
-            self.grid.addWidget(gui, 0, 1)
+            paral = GuiParallelepiped(tasks[2])
+            self.parallelepipeds.append(paral)
+            self.grid.addWidget(paral, 0, 1)
 
-    def cut_task(self, task, dx=0, dy=0, dz=0):
+    def _cut_task(self, task, dx=0, dy=0, dz=0):
         def is_empty(array):
             if not array:
                 return True

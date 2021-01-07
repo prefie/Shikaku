@@ -44,13 +44,13 @@ def save_in_file(filename, field):
                 f.write('\n\n')
 
 
-def main():
-    args = parse_args()
+def generate_puzzle(width, height, depth, puzzle_path, solution_path):
     generator = Generator()
-    puzzle, solution = generator.generate(args.width, args.height, args.depth)
-    save_in_file(args.puzzle, puzzle.field)
-    save_in_file(args.solution, solution.solution)
+    puzzle, solution = generator.generate(width, height, depth)
+    save_in_file(puzzle_path, puzzle.field)
+    save_in_file(solution_path, solution.solution)
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    generate_puzzle(args.width, args.height, args.depth, args.puzzle, args.solution)

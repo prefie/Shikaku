@@ -4,12 +4,13 @@ import math
 import os
 import sys
 import threading
+import re
 from copy import deepcopy
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget, QMessageBox,
                              QHBoxLayout, QFileDialog, QAction, QVBoxLayout, QGridLayout, QSlider, QLineEdit,
                              QPushButton, QLabel)
 
@@ -290,6 +291,9 @@ class MainForm(QMainWindow):
         file_menu.addAction(open_file_action)
         file_menu.addAction(solve_action)
 
+        self.msg = QMessageBox()
+        self.msg.addButton('Ок', QMessageBox.RejectRole)
+
         self.show()
 
     def _activate_scrolls(self):
@@ -314,14 +318,16 @@ class MainForm(QMainWindow):
         self.new_window.show()
 
     def _get_task(self, filename):
-        with open(filename, 'r') as f:
-            data = f.read()
-            try:
-                field = parse_puzzle(data)
-            except ValueError as e:
-                pass  # TODO: если в файле не головоломка?
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = f.read()
+                field = _parse_puzzle(data)
+        except Exception as e:
+            self.msg.setWindowTitle('Ошибка при открытии головоломки/решения:')
+            self.msg.setText(e.args[0])
+            self.msg.show()
+        else:
             self._task = Task(field, solution=field)
-
             self._update()
 
     ''''@thread
@@ -443,7 +449,7 @@ class MainForm(QMainWindow):
 
             yield None if is_empty(field) else Task(field, solution)
 
-
+'''
 def parse_puzzle(text):
     field = text.split('\n\n')
 
@@ -470,6 +476,129 @@ def parse_puzzle(text):
                 raise error
 
     return result
+'''
+
+
+'''
+def _parse_puzzle(text):
+    p_text = text.split('\n')
+    field = [[]]
+
+    dx = 0
+    dy = 0
+    for j in range(len(p_text)):
+        string = p_text[j]
+        if not string:
+            dx += 1
+            dy = 0
+            field.append([])
+            continue
+
+        str_split = re.split('\t| ', string)
+        field[dx].append([])
+
+        sym = 0
+        for k in range(len(str_split)):
+            element = str_split[k]
+            digit_str = ''
+            for i in range(len(element)):
+                if element[i] == '\t':
+                    if digit_str != '':
+                        field[dx][dy].append(int(digit_str))
+                        digit_str = ''
+                    continue
+
+                if element[i] == '-' and len(element) == 1:
+                    field[dx][dy].append(-1)
+                elif element[i].isdigit():
+                    digit_str += element[i]
+
+                elif element[i] == '*':
+                    field[dx][dy].append(int(digit_str))
+                    digit_str = ''
+                else:
+                    raise ValueError(f'{j + 1}:{sym + 1}\n{string}:{element[i]}')
+                sym += 1
+
+            if digit_str != '':
+                field[dx][dy].append(int(digit_str))
+
+        dy += 1
+
+    count_dy = len(field[0])
+    count_dz = len(field[0][0])
+    for x in range(len(field)):
+        if len(field[x]) != count_dy:
+            raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}')
+        for y in range(len(field[x])):
+            if len(field[x][y]) != count_dz:
+                raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}, y = {y}')
+
+    return field'''
+
+
+def _parse_puzzle(text):
+    p_text = text.split('\n')
+    field = [[]]
+
+    dx = 0
+    dy = 0
+    for j in range(len(p_text)):
+        string = p_text[j]
+        if not string:
+            dx += 1
+            dy = 0
+            field.append([])
+            continue
+
+        field[dx].append([])
+        digit_str = ''
+        for i in range(len(string)):
+            if string[i] == '\t' or string[i] == ' ':
+                if digit_str != '':
+                    field[dx][dy].append(int(digit_str))
+                    digit_str = ''
+                continue
+
+            if string[i] == '-':
+                if i - 1 >= 0 and string[i - 1] != '\t' and string[i - 1] != ' ':
+                    raise ValueError(
+                        f'строка:символ\n\n{j + 1}:{i + 1}\n{string}:{string[i]}')
+                if i + 1 < len(string) and string[i + 1] != '\t' and string[i + 1] != ' ':
+                    raise ValueError(
+                        f'строка:символ\n\n{j + 1}:{i + 2}\n{string}:{string[i + 1]}')
+                field[dx][dy].append(-1)
+            elif string[i].isdigit():
+                digit_str += string[i]
+
+            elif string[i] == '*':
+                if len(digit_str) == 0:
+                    raise ValueError(
+                        f'строка:символ\n\n{j + 1}:{i + 1}\n{string}:{string[i]}')
+                if i + 1 < len(string) and string[i + 1] != '\t' and string[i + 1] != ' ':
+                    raise ValueError(
+                        f'строка:символ\n\n{j + 1}:{i + 2}\n{string}:{string[i + 1]}')
+                field[dx][dy].append(int(digit_str))
+                digit_str = ''
+            else:
+                raise ValueError(
+                    f'строка:символ\n\n{j + 1}:{i + 1}\n{string}:{string[i]}')
+
+        if digit_str != '':
+            field[dx][dy].append(int(digit_str))
+
+        dy += 1
+
+    count_dy = len(field[0])
+    count_dz = len(field[0][0])
+    for x in range(len(field)):
+        if len(field[x]) != count_dy:
+            raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}')
+        for y in range(len(field[x])):
+            if len(field[x][y]) != count_dz:
+                raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}, y = {y}')
+
+    return field
 
 
 if __name__ == '__main__':

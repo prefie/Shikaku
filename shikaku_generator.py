@@ -35,34 +35,18 @@ def _save_in_file(filename, field):
     with open(filename, 'w') as f:
         for i in range(len(field)):
             for j in range(len(field[i])):
-                f.write('\t'.join(map(
-                    str,
-                    map(lambda x: '-' if x == -1 else x, field[i][j]))))
+                f.write('\t'.join(map(str, field[i][j])))
                 if j != len(field[i]) - 1:
                     f.write('\n')
             if i != len(field) - 1:
                 f.write('\n\n')
 
 
-def save_puzzle(filename, field):
-    for x in range(len(field)):
-        for y in range(len(field[0])):
-            for z in range(len(field[0][0])):
-                if field[x][y][z] != -1:
-                    field[x][y][z] = str(field[x][y][z]) + '*'
-
-    _save_in_file(filename, field)
-
-
-def save_solution(filename, solution):
-    _save_in_file(filename, solution)
-
-
 def generate_puzzle(width, height, depth, puzzle_path, solution_path):
     generator = Generator()
     puzzle, solution = generator.generate(width, height, depth)
-    save_puzzle(puzzle_path, puzzle.field)
-    save_solution(solution_path, solution.solution)
+    _save_in_file(puzzle_path, puzzle.field)
+    _save_in_file(solution_path, solution.solution)
 
 
 if __name__ == '__main__':

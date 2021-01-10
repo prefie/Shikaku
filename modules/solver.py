@@ -9,6 +9,7 @@ class Solver:
         self.task.solution = deepcopy(self.task.field)
         self.task.answer = []
         self._blocks = self._completion_blocks()
+        pass
 
     def solve(self, block_number=0):
         """Рекурсивно решает головоломку Shikaku"""
@@ -34,7 +35,7 @@ class Solver:
 
                         try:
                             parallelepiped = Parallelepiped(
-                                point1, point2, block_number, block, self.task)
+                                point1, point2, block, self.task)
                         except ValueError:
                             continue
 
@@ -49,23 +50,34 @@ class Solver:
 
     def _completion_blocks(self):
         blocks = []
+        count = 0
+        used_colors = set()
         for x in range(len(self.task.field)):
             for y in range(len(self.task.field[x])):
                 for z in range(len(self.task.field[x][y])):
-                    if self.task.field[x][y][z] != -1:
-                        self.task.solution[x][y][z] = len(blocks)
-                        blocks.append(
-                            Block(x, y, z, self.task.field[x][y][z]))
+                    if self.task.field[x][y][z].is_marked():
+                        count += 1
+                        if not self.task.field[x][y][z].is_painted():
+                            blocks.append(
+                                Block(x, y, z, self.task.field[x][y][z].mark))
+                        else:
+                            used_colors.add(self.task.solution[x][y][z].color)
+
+        colors = set(range(count)).difference(used_colors)
+
+        for block in blocks:
+            block.color = colors.pop()
         return blocks
 
 
 class Block:
     """Блок фигуры в заданной точке с заданным объёмом"""
-    def __init__(self, x, y, z, value):
+    def __init__(self, x, y, z, value, color=None):
         self.x = x
         self.y = y
         self.z = z
         self.value = value
+        self.color = color
         self.sides = self._calculate_sides()
 
     def _calculate_sides(self):
@@ -86,7 +98,7 @@ class Block:
 
 class Parallelepiped:
     """Параллелепипед"""
-    def __init__(self, point1, point2, number_block, block, task):
+    def __init__(self, point1, point2, block, task):
         if not (0 <= point1.x <= point2.x < task.size_x and
                 0 <= point1.y <= point2.y < task.size_y and
                 0 <= point1.z <= point2.z < task.size_z):
@@ -95,7 +107,6 @@ class Parallelepiped:
         self.task = task
         self.point1 = point1
         self.point2 = point2
-        self.block_number = number_block
         self.block = block
 
     def is_conflict(self):
@@ -104,28 +115,27 @@ class Parallelepiped:
         for x in range(self.point1.x, self.point2.x + 1):
             for y in range(self.point1.y, self.point2.y + 1):
                 for z in range(self.point1.z, self.point2.z + 1):
-                    if (self.task.solution[x][y][z] != -1 and
-                            self.task.solution[x][y][z] != self.block_number):
+                    if (self.task.solution[x][y][z].is_painted() and
+                            self.task.solution[x][y][z].color != self.block.color):
                         return True
         return False
 
     def fill_ids(self):
-        """Заполняет решение идентификатором параллелепипеда(номером блока)"""
+        """Заполняет решение идентификатором параллелепипеда(цветом)"""
+        self._fill_block(self.block.color)
+        self._add_block_in_answer()
+
+    def _fill_block(self, color):
         for x in range(self.point1.x, self.point2.x + 1):
             for y in range(self.point1.y, self.point2.y + 1):
                 for z in range(self.point1.z, self.point2.z + 1):
-                    self.task.solution[x][y][z] = self.block_number
-
-        if self.block_number != -1:
-            self._add_block_in_answer()
+                    self.task.solution[x][y][z].color = color
 
     def clear_ids(self):
         """Стирает идентификатор параллелепипеда с решения"""
-        self.block_number = -1
-        self.task.answer.pop(self.block_number)
-        self.fill_ids()
-        self.task.solution[self.block.x][self.block.y][self.block.z] =\
-            self.block_number
+        self._fill_block(None)
+        self.task.solution[self.block.x][self.block.y][self.block.z].color =\
+            self.block.color
 
     def _add_block_in_answer(self):
         """Добавляет указанный параллелепипед(блок) в ответ"""

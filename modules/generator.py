@@ -1,5 +1,6 @@
 from random import randint, choice
 from modules.task import Task
+from modules.cube import Cube
 
 
 class Generator:
@@ -17,15 +18,15 @@ class Generator:
             raise ValueError
 
         self._field = \
-            [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
+            [[[Cube() for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
 
         self._solution = \
-            [[[-1 for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
+            [[[Cube() for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
         self._answer = []
         for x in range(dx):
             for y in range(dy):
                 for z in range(dz):
-                    if self._solution[x][y][z] != -1:
+                    if self._solution[x][y][z].is_painted():
                         continue
                     sx = randint(1, dx - x)
                     sy = randint(1, dy - y)
@@ -40,12 +41,12 @@ class Generator:
                 Task(self._field, self._solution, self._answer))
 
     def _generate_answer(self, x, y, z, sx, sy, sz):
-        """Заполняет field цветами и answer - блоками"""
+        """Заполняет solution цветами и answer - блоками"""
         block = []
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    self._solution[x + i][y + j][z + k] = len(self._answer)
+                    self._solution[x + i][y + j][z + k].color = len(self._answer)
                     block.append([x + i, y + j, z + k])
         self._answer.append(block)
 
@@ -54,7 +55,8 @@ class Generator:
         for block in self._answer:
             v = len(block)
             x, y, z = choice(block)
-            self._field[x][y][z] = v
+            self._field[x][y][z].mark = v
+            self._solution[x][y][z].mark = v
 
     def _check_cells(self, x, y, z, sx, sy, sz):
         """Возвращает True, если хотя бы одна клетка
@@ -62,6 +64,6 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    if self._solution[x + i][y + j][z + k] != -1:
+                    if self._solution[x + i][y + j][z + k].is_painted():
                         return True
         return False

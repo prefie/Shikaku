@@ -89,7 +89,8 @@ class GeneratorTest(unittest.TestCase):
         for x in range(task_solution.size_x):
             for y in range(task_solution.size_y):
                 for z in range(task_solution.size_z):
-                    self.assertTrue(task_solution.solution[x][y][z].is_colored())
+                    self.assertTrue(
+                        task_solution.solution[x][y][z].is_colored())
 
 
 class TaskTest(unittest.TestCase):
@@ -145,7 +146,9 @@ class SolverTest(unittest.TestCase):
         self._check_marks(task)
 
         self._check_color_range(task, task.solution[0][1][1].color,
-                                range(1), range(task.size_y), range(task.size_z))
+                                range(1),
+                                range(task.size_y),
+                                range(task.size_z))
 
     def test_2(self):
         # (2, 2, 1)
@@ -158,7 +161,9 @@ class SolverTest(unittest.TestCase):
         self._check_marks(task)
 
         self._check_color_range(task, task.solution[1][0][0].color,
-                                range(task.size_x), range(task.size_y), range(1))
+                                range(task.size_x),
+                                range(task.size_y),
+                                range(1))
 
     def test_3(self):
         # (2, 2, 2)
@@ -175,10 +180,14 @@ class SolverTest(unittest.TestCase):
                             task.solution[1][0][1].color)
 
         self._check_color_range(task, task.solution[0][0][1].color,
-                                range(1), range(task.size_y), range(task.size_z))
+                                range(1),
+                                range(task.size_y),
+                                range(task.size_z))
 
         self._check_color_range(task, task.solution[1][0][1].color,
-                                range(1, 2), range(task.size_y), range(task.size_z))
+                                range(1, task.size_x),
+                                range(task.size_y),
+                                range(task.size_z))
 
     def test_4(self):
         # (2, 2, 2)
@@ -193,7 +202,9 @@ class SolverTest(unittest.TestCase):
         self._check_marks(task)
 
         self._check_color_range(task, task.solution[1][1][1].color,
-                                range(task.size_x), range(task.size_y), range(task.size_z))
+                                range(task.size_x),
+                                range(task.size_y),
+                                range(task.size_z))
 
     def test_5(self):
         # (3, 2, 2)
@@ -211,10 +222,14 @@ class SolverTest(unittest.TestCase):
         self._check_marks(task)
 
         self._check_color_range(task, task.solution[0][0][1].color,
-                                range(1), range(task.size_y), range(task.size_z))
+                                range(1),
+                                range(task.size_y),
+                                range(task.size_z))
 
         self._check_color_range(task, task.solution[1][0][0].color,
-                                range(1, task.size_x), range(task.size_y), range(task.size_z))
+                                range(1, task.size_x),
+                                range(task.size_y),
+                                range(task.size_z))
 
     def test_6(self):
         # (3, 2, 3)
@@ -233,13 +248,19 @@ class SolverTest(unittest.TestCase):
         self._check_marks(task)
 
         self._check_color_range(task, task.solution[1][0][1].color,
-                                range(task.size_x), range(1), range(1, task.size_z))
+                                range(task.size_x),
+                                range(1),
+                                range(1, task.size_z))
 
         self._check_color_range(task, task.solution[1][1][1].color,
-                                range(task.size_x), range(1, task.size_y), range(1, task.size_z))
+                                range(task.size_x),
+                                range(1, task.size_y),
+                                range(1, task.size_z))
 
         self._check_color_range(task, task.solution[1][0][0].color,
-                                range(task.size_x), range(task.size_y), range(1))
+                                range(task.size_x),
+                                range(task.size_y),
+                                range(1))
 
     def test_7(self):
         # (1, 3, 3) - частично решенная
@@ -256,10 +277,14 @@ class SolverTest(unittest.TestCase):
                                 range(task.size_x), range(1), range(2))
 
         self._check_color_range(task, task.solution[0][1][0].color,
-                                range(task.size_x), range(1, task.size_y), range(2))
+                                range(task.size_x),
+                                range(1, task.size_y),
+                                range(2))
 
         self._check_color_range(task, task.solution[0][0][2].color,
-                                range(task.size_x), range(task.size_y), range(2, task.size_z))
+                                range(task.size_x),
+                                range(task.size_y),
+                                range(2, task.size_z))
 
     def _check_color_range(self, task, value, range_x, range_y, range_z):
         for x in range_x:
@@ -271,7 +296,8 @@ class SolverTest(unittest.TestCase):
         for x in range(task.size_x):
             for y in range(task.size_y):
                 for z in range(task.size_z):
-                    self.assertEqual(task.field[x][y][z].mark, task.solution[x][y][z].mark)
+                    self.assertEqual(task.field[x][y][z].mark,
+                                     task.solution[x][y][z].mark)
 
 
 if __name__ == '__main__':

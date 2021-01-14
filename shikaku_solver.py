@@ -10,9 +10,10 @@ from contextlib import contextmanager
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget, QMessageBox,
-                             QHBoxLayout, QFileDialog, QAction, QVBoxLayout, QGridLayout,
-                             QSlider, QLineEdit, QPushButton, QLabel, QProgressBar)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget,
+                             QMessageBox, QHBoxLayout, QFileDialog, QAction,
+                             QVBoxLayout, QGridLayout, QSlider, QLineEdit,
+                             QPushButton, QLabel, QProgressBar)
 
 import shikaku_generator
 from modules.solver import Solver
@@ -60,7 +61,7 @@ class GuiParallelepiped(QFrame):
         self.pen.setWidth(3)
         self.brush = QBrush(QColor(255, 255, 0, 255))
 
-        self._size_cube = 40
+        self.size = 40
         self._rect = {}
         self._generate_rect()
         self._init_ui()
@@ -88,46 +89,53 @@ class GuiParallelepiped(QFrame):
 
     def _init_ui(self):
         self.setFixedSize(
-            (self._size_cube * self.size_x +
-             self._size_cube * self.size_z * math.cos(math.radians(30)) + 2),
-            (self._size_cube * self.size_y +
-             self._size_cube * self.size_z * math.sin(math.radians(30)) + 2))
+            (self.size * self.size_x +
+             self.size * self.size_z * math.cos(math.radians(30)) + 2),
+            (self.size * self.size_y +
+             self.size * self.size_z * math.sin(math.radians(30)) + 2))
 
     def _generate_rect(self):
         offset_x = 0
-        offset_y = self._size_cube * self.size_z * math.sin(math.radians(30))
+        offset_y = self.size * self.size_z * math.sin(math.radians(30))
         angle = 30
         for z in range(self.size_z):
             for x in range(self.size_x):
-                rec = self.create_rect(self._size_cube, self._size_cube, angle, 0, offset_x, offset_y)
+                rec = self.create_rect(self.size,
+                                       self.size,
+                                       angle, 0, offset_x, offset_y)
                 self._rect[(x, 0, z, 'xz')] = rec
-                offset_x += self._size_cube
-            offset_y -= self._size_cube * math.sin(math.radians(angle))
-            offset_x = self._size_cube * math.cos(math.radians(angle)) * (z + 1)
+                offset_x += self.size
+            offset_y -= self.size * math.sin(math.radians(angle))
+            offset_x = self.size * math.cos(math.radians(angle)) * (z + 1)
 
         offset_x = 0
-        offset_y = self._size_cube * self.size_z * math.sin(math.radians(30)) + self._size_cube
+        offset_y = (self.size * self.size_z * math.sin(math.radians(30)) +
+                    self.size)
         angle = 90
         for y in range(self.size_y):
             for x in range(self.size_x):
-                rec = self.create_rect(self._size_cube, self._size_cube, angle, 0, offset_x, offset_y)
+                rec = self.create_rect(self.size,
+                                       self.size,
+                                       angle, 0, offset_x, offset_y)
                 self._rect[(x, y, 0, 'xy')] = rec
-                offset_x += self._size_cube
-            offset_y += self._size_cube * math.sin(math.radians(angle))
+                offset_x += self.size
+            offset_y += self.size * math.sin(math.radians(angle))
             offset_x = 0
 
-        offset_x = self.size_x * self._size_cube
-        offset_y = self._size_cube * self.size_z * math.sin(math.radians(30))
+        offset_x = self.size_x * self.size
+        offset_y = self.size * self.size_z * math.sin(math.radians(30))
         angle = 30
         for y in range(self.size_y):
             for z in range(self.size_z):
-                rec = self.create_rect(self._size_cube, self._size_cube, angle, 90, offset_x, offset_y)
+                rec = self.create_rect(self.size,
+                                       self.size,
+                                       angle, 90, offset_x, offset_y)
                 self._rect[(self.size_x - 1, y, z, 'yz')] = rec
-                offset_x += self._size_cube * math.cos(math.radians(angle))
-                offset_y -= self._size_cube * math.sin(math.radians(angle))
-            offset_y = (self._size_cube * self.size_z * math.sin(math.radians(30)) +
-                        self._size_cube * (y + 1))
-            offset_x = self.size_x * self._size_cube
+                offset_x += self.size * math.cos(math.radians(angle))
+                offset_y -= self.size * math.sin(math.radians(angle))
+            offset_y = (self.size * self.size_z * math.sin(math.radians(30)) +
+                        self.size * (y + 1))
+            offset_x = self.size_x * self.size
 
     def paintEvent(self, e):
         with temp_painter(self) as painter:
@@ -194,7 +202,9 @@ class input_dialog(QWidget):
 
         self.path = QLabel()
         self.path.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        main_layout.addWidget(QLabel('Директория для сохранения\nголоволомки и её решения:'), 5, 0)
+        main_layout.addWidget(
+            QLabel('Директория для сохранения\nголоволомки и её решения:'),
+            5, 0)
         main_layout.addWidget(self.path, 5, 1)
         dir_button = QPushButton('...')
         dir_button.clicked.connect(self._path_handler)
@@ -221,9 +231,17 @@ class input_dialog(QWidget):
             # TODO: Если некорректные параметры?
             return
         puzzle_name = self.path.text() + '\\'
-        puzzle_name += self.puzzle_name.text() if self.puzzle_name.text() else 'shikaku_puzzle.txt'
+        if self.puzzle_name.text():
+            puzzle_name += self.puzzle_name.text()
+        else:
+            puzzle_name += 'shikaku_puzzle.txt'
+
         solution_name = self.path.text() + '\\'
-        solution_name += self.solution_name.text() if self.solution_name.text() else 'shikaku_solution.txt'
+        if self.solution_name.text():
+            solution_name += self.solution_name.text()
+        else:
+            solution_name += 'shikaku_solution.txt'
+
         shikaku_generator.generate_puzzle(w, h, d, puzzle_name, solution_name)
         self.close()
 
@@ -412,7 +430,10 @@ class MainForm(QMainWindow):
         dy = self.scroll_y.value()
         dz = self.scroll_z.value()
 
-        field = self._task.field if self._task.solution is None else self._task.solution
+        if not self._task.solution:
+            field = self._task.field
+        else:
+            field = self._task.solution
 
         fields = [i for i in self._cut_task(field, dx, dy, dz)]
         if fields[1] is not None:

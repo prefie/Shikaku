@@ -45,4 +45,5 @@ def generate_puzzle(width, height, depth, puzzle_path, solution_path):
 
 if __name__ == '__main__':
     args = parse_args()
-    generate_puzzle(args.width, args.height, args.depth, args.puzzle, args.solution)
+    generate_puzzle(args.width, args.height, args.depth,
+                    args.puzzle, args.solution)

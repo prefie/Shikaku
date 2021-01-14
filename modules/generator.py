@@ -18,10 +18,12 @@ class Generator:
             raise ValueError
 
         self._field = \
-            [[[Cube() for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
+            [[[Cube() for _ in range(dz)]
+              for _ in range(dy)] for _ in range(dx)]
 
         self._solution = \
-            [[[Cube() for _ in range(dz)] for _ in range(dy)] for _ in range(dx)]
+            [[[Cube() for _ in range(dz)]
+              for _ in range(dy)] for _ in range(dx)]
         self._answer = []
         for x in range(dx):
             for y in range(dy):
@@ -46,7 +48,8 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    self._solution[x + i][y + j][z + k].color = len(self._answer)
+                    self._solution[x + i][y + j][z + k].color = \
+                        len(self._answer)
                     block.append([x + i, y + j, z + k])
         self._answer.append(block)
 

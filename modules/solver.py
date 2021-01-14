@@ -97,6 +97,7 @@ class Solver:
 
 class Block:
     """Блок фигуры в заданной точке с заданным объёмом"""
+
     def __init__(self, x, y, z, value, color=None):
         self.x = x
         self.y = y
@@ -123,6 +124,7 @@ class Block:
 
 class Parallelepiped:
     """Параллелепипед"""
+
     def __init__(self, point1, point2, block, task):
         if not (0 <= point1.x <= point2.x < task.size_x and
                 0 <= point1.y <= point2.y < task.size_y and
@@ -141,7 +143,8 @@ class Parallelepiped:
             for y in range(self.point1.y, self.point2.y + 1):
                 for z in range(self.point1.z, self.point2.z + 1):
                     if (self.task.solution[x][y][z].is_colored() and
-                            self.task.solution[x][y][z].color != self.block.color):
+                            self.task.solution[x][y][z].color !=
+                            self.block.color):
                         return True
         return False
 
@@ -160,7 +163,7 @@ class Parallelepiped:
         """Стирает идентификатор параллелепипеда с решения"""
         self._fill_block(None)
         self._remove_block_from_answer()
-        self.task.solution[self.block.x][self.block.y][self.block.z].color =\
+        self.task.solution[self.block.x][self.block.y][self.block.z].color = \
             self.block.color
 
     def _add_block_in_answer(self):
@@ -179,6 +182,7 @@ class Parallelepiped:
 
 class Point:
     """Класс точки в трёхмерном пространстве"""
+
     def __init__(self, x, y, z):
         self.x = x
         self.y = y

@@ -3,6 +3,7 @@ from modules.cube import Cube
 
 class Task:
     """Класс задачи-головоломки Shikaku"""
+
     def __init__(self, field, solution=None, answer=None):
         if self._field_is_empty(field):
             raise ValueError
@@ -10,7 +11,7 @@ class Task:
         self.field = field
         self.solution = solution
         self.answer = answer
-        self.size_x, self.size_y, self.size_z =\
+        self.size_x, self.size_y, self.size_z = \
             len(field), len(field[0]), len(field[0][0])
 
     @staticmethod
@@ -27,6 +28,10 @@ class Task:
 
     @staticmethod
     def fromstr(text):
+
+        def _message(str_i, ch_i, line, char):
+            return f'строка:символ\n\n{str_i}:{ch_i}\n{line}:{char}'
+
         p_text = text.split('\n')
         field = [[]]
 
@@ -50,23 +55,31 @@ class Task:
                         digit_str = ''
                     continue
 
-                if string[i] == '-' and (i - 1 < 0 or string[i - 1] == '\t' or string[i - 1] == ' '):
-                    if i + 1 < len(string) and string[i + 1] != '\t' and string[i + 1] != ' ':
+                if (string[i] == '-' and
+                        (i - 1 < 0 or
+                         string[i - 1] == '\t' or
+                         string[i - 1] == ' ')):
+                    if (i + 1 < len(string) and
+                            string[i + 1] != '\t' and
+                            string[i + 1] != ' '):
                         raise ValueError(
-                            f'строка:символ\n\n{j + 1}:{i + 2}\n{string}:{string[i + 1]}')
+                            _message(j + 1, i + 2, string, string[i + 1]))
                     field[dx][dy].append(Cube())
                 elif string[i].isdigit():
                     digit_str += string[i]
 
                 elif string[i] == '*' and len(digit_str) > 0:
                     if len(color_with_mark) > 0:
-                        field[dx][dy].append(Cube(color=int(color_with_mark), mark=int(digit_str)))
+                        field[dx][dy].append(Cube(color=int(color_with_mark),
+                                                  mark=int(digit_str)))
                         color_with_mark = ''
                         digit_str = ''
                         continue
-                    if i + 1 < len(string) and string[i + 1] != '\t' and string[i + 1] != ' ':
+                    if (i + 1 < len(string) and
+                            string[i + 1] != '\t' and
+                            string[i + 1] != ' '):
                         raise ValueError(
-                            f'строка:символ\n\n{j + 1}:{i + 2}\n{string}:{string[i + 1]}')
+                            _message(j + 1, i + 2, string, string[i + 1]))
                     field[dx][dy].append(Cube(mark=int(digit_str)))
                     digit_str = ''
 
@@ -76,7 +89,7 @@ class Task:
 
                 else:
                     raise ValueError(
-                        f'строка:символ\n\n{j + 1}:{i + 1}\n{string}:{string[i]}')
+                        _message(j + 1, i + 1, string, string[i]))
 
             if digit_str != '':
                 field[dx][dy].append(Cube(color=int(digit_str)))
@@ -87,10 +100,12 @@ class Task:
         count_dz = len(field[0][0])
         for x in range(len(field)):
             if len(field[x]) != count_dy:
-                raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}')
+                raise ValueError(
+                    f'Это не параллелепипед при x = {x}')
             for y in range(len(field[x])):
                 if len(field[x][y]) != count_dz:
-                    raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}, y = {y}')
+                    raise ValueError(
+                        f'Это не параллелепипед при x = {x}, y = {y}')
 
         return Task(field)
 

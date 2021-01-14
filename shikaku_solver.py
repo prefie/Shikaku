@@ -5,18 +5,18 @@ import os
 import sys
 import threading
 from copy import deepcopy
+from contextlib import contextmanager
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPolygonF
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFrame, QWidget, QMessageBox,
-                             QHBoxLayout, QFileDialog, QAction, QVBoxLayout, QGridLayout, QSlider, QLineEdit,
-                             QPushButton, QLabel)
+                             QHBoxLayout, QFileDialog, QAction, QVBoxLayout, QGridLayout,
+                             QSlider, QLineEdit, QPushButton, QLabel, QProgressBar)
 
 import shikaku_generator
 from modules.solver import Solver
 from modules.task import Task
-from modules.cube import Cube
 
 BACK_COLORS = {
     -1: QColor('white'),
@@ -37,6 +37,16 @@ BACK_COLORS = {
 }
 
 
+@contextmanager
+def temp_painter(device):
+    painter = QPainter()
+    painter.begin(device)
+    try:
+        yield painter
+    finally:
+        painter.end()
+
+
 class GuiParallelepiped(QFrame):
 
     def __init__(self, field, parent=None):
@@ -50,8 +60,7 @@ class GuiParallelepiped(QFrame):
         self.pen.setWidth(3)
         self.brush = QBrush(QColor(255, 255, 0, 255))
 
-        self._size_cube = 50
-        self.painter = QPainter()
+        self._size_cube = 40
         self._rect = {}
         self._generate_rect()
         self._init_ui()
@@ -121,29 +130,24 @@ class GuiParallelepiped(QFrame):
             offset_x = self.size_x * self._size_cube
 
     def paintEvent(self, e):
+        with temp_painter(self) as painter:
+            painter.setPen(self.pen)
+            painter.setBrush(self.brush)
 
-        self.painter.begin(self)
-        self._draw()
-        self.painter.end()
+            for i in self._rect:
+                id_color = self._field[i[0]][i[1]][i[2]].color
+                if id_color is not None:
+                    color = BACK_COLORS[id_color % (len(BACK_COLORS) - 1)]
+                else:
+                    color = 0
+                brush = QBrush(color)
+                painter.setBrush(brush)
+                painter.drawPolygon(self._rect[i])
 
-    def _draw(self):
-        self.painter.setPen(self.pen)
-        self.painter.setBrush(self.brush)
-
-        for i in self._rect:
-            id_color = self._field[i[0]][i[1]][i[2]].color
-            if id_color is not None:
-                color = BACK_COLORS[id_color % (len(BACK_COLORS) - 1)]
-            else:
-                color = 0
-            brush = QBrush(color)
-            self.painter.setBrush(brush)
-            self.painter.drawPolygon(self._rect[i])
-
-            if self._field[i[0]][i[1]][i[2]].is_marked():
-                rect = self._rect[i].boundingRect()
-                self.painter.drawText(rect, Qt.AlignCenter,
-                                      str(self._field[i[0]][i[1]][i[2]].mark))
+                if self._field[i[0]][i[1]][i[2]].is_marked():
+                    rect = self._rect[i].boundingRect()
+                    painter.drawText(rect, Qt.AlignCenter,
+                                     str(self._field[i[0]][i[1]][i[2]].mark))
 
 
 def thread(func):
@@ -211,8 +215,8 @@ class input_dialog(QWidget):
     def _continue_handler(self):
         try:
             w = int(self.width.text()) if self.width.text() else 1
-            h = int(self.height.text()) if self.width.text() else 1
-            d = int(self.depth.text()) if self.width.text() else 1
+            h = int(self.height.text()) if self.height.text() else 1
+            d = int(self.depth.text()) if self.depth.text() else 1
         except ValueError:
             # TODO: Если некорректные параметры?
             return
@@ -247,6 +251,11 @@ class MainForm(QMainWindow):
         centralWidget = QWidget()
         self.setCentralWidget(centralWidget)
         self.mainLayout = QVBoxLayout(centralWidget)
+
+        self.progress_bar = QProgressBar(self)
+        self.mainLayout.addWidget(self.progress_bar)
+        self.progress_bar.setRange(0, 10000)
+
         self.hBox = QHBoxLayout()
         self.mainLayout.addLayout(self.hBox)
 
@@ -325,7 +334,7 @@ class MainForm(QMainWindow):
         try:
             with open(filename, 'r', encoding='utf-8') as f:
                 data = f.read()
-                field = _parse_puzzle(data)
+                task = Task.fromstr(data)
         except Exception as e:
             self.msg.setWindowTitle('Ошибка при открытии головоломки/решения:')
             if len(e.args) > 0:
@@ -334,8 +343,9 @@ class MainForm(QMainWindow):
                 self.msg.setText('Что-то пошло не так...')
             self.msg.show()
         else:
-            self._task = Task(field)
-            self._update(field)
+            self._task = task
+            self._update(task.field)
+            self.progress_bar.setValue(0)
 
     def _clear_parallelepipeds(self):
         for p in self.parallelepipeds:
@@ -347,16 +357,16 @@ class MainForm(QMainWindow):
         self._deactivate_scrolls()
 
         self._clear_parallelepipeds()
-        paral = GuiParallelepiped(field)
-        self.parallelepipeds.append(paral)
-        self.grid.addWidget(paral, 0, 0)
+        parallelepiped = GuiParallelepiped(field, self)
+        self.parallelepipeds.append(parallelepiped)
+        self.grid.addWidget(parallelepiped, 0, 0)
 
         self.scroll_x.setRange(0, self._task.size_x - 1)
         self.scroll_y.setRange(0, self._task.size_y - 1)
-        self.scroll_z.setRange(1, self._task.size_z)
+        self.scroll_z.setRange(0, self._task.size_z - 1)
         self.scroll_x.setValue(0)
         self.scroll_y.setValue(0)
-        self.scroll_z.setValue(self._task.size_z)
+        self.scroll_z.setValue(0)
 
         self._activate_scrolls()
 
@@ -366,7 +376,18 @@ class MainForm(QMainWindow):
         result = False
         if task:
             solver = Solver(task)
+            self.progress_bar.setRange(0, solver.max + 1)
+            self.progress_bar.setValue(solver.status)
+            flag = True
+
+            @thread
+            def check_status():
+                while flag:
+                    self.progress_bar.setValue(solver.status)
+
+            check_status()
             result = solver.solve()
+            flag = False
         self.solver_signal.emit(result, task)
 
     def signal_handler(self, result, task):
@@ -376,10 +397,12 @@ class MainForm(QMainWindow):
                 self.msg.setText('Головоломка не обнаружена')
             else:
                 self.msg.setText(
-                    'Решатель не смог найти решение головоломки, либо она уже решена')
+                    'Решатель не смог найти решение головоломки')
             self.msg.show()
         else:
-            self._task = task
+            self._task = Task(field=task.solution,
+                              solution=task.solution,
+                              answer=task.answer)
             self._update(self._task.solution)
 
     def _scroll_handler(self):
@@ -393,42 +416,42 @@ class MainForm(QMainWindow):
 
         fields = [i for i in self._cut_task(field, dx, dy, dz)]
         if fields[1] is not None:
-            paral = GuiParallelepiped(fields[1])
-            self.parallelepipeds.append(paral)
-            self.grid.addWidget(paral, 1, 0)
+            parallelepiped = GuiParallelepiped(fields[1], self)
+            self.parallelepipeds.append(parallelepiped)
+            self.grid.addWidget(parallelepiped, 1, 0)
 
         if fields[0] is not None:
-            paral = GuiParallelepiped(fields[0])
-            self.parallelepipeds.append(paral)
-            self.grid.addWidget(paral, 0, 0)
+            parallelepiped = GuiParallelepiped(fields[0], self)
+            self.parallelepipeds.append(parallelepiped)
+            self.grid.addWidget(parallelepiped, 0, 0)
 
         if fields[3] is not None:
-            paral = GuiParallelepiped(fields[3])
-            self.parallelepipeds.append(paral)
-            self.grid.addWidget(paral, 1, 1)
+            parallelepiped = GuiParallelepiped(fields[3], self)
+            self.parallelepipeds.append(parallelepiped)
+            self.grid.addWidget(parallelepiped, 1, 1)
 
         if fields[2] is not None:
-            paral = GuiParallelepiped(fields[2])
-            self.parallelepipeds.append(paral)
-            self.grid.addWidget(paral, 0, 1)
+            parallelepiped = GuiParallelepiped(fields[2], self)
+            self.parallelepipeds.append(parallelepiped)
+            self.grid.addWidget(parallelepiped, 0, 1)
 
     @staticmethod
     def _cut_task(field, dx=0, dy=0, dz=0):
-        def is_empty(array):
-            if not array:
+        def is_empty(arrays):
+            if len(arrays) < 1:
                 return True
-            for x in array:
-                if not x:
+            for array in arrays:
+                if len(array) < 1:
                     return True
-                for y in x:
-                    if not y:
+                for arr in array:
+                    if len(arr) < 1:
                         return True
             return False
 
         field = deepcopy(field)
         for x in range(len(field)):  # Глубина
             for y in range(len(field[0])):
-                field[x][y] = field[x][y][:dz]
+                field[x][y] = field[x][y][dz:]
 
         fields = [field[:dx], field[dx:]]
 
@@ -444,75 +467,6 @@ class MainForm(QMainWindow):
                 field[x] = fields[i][x][dy:]
 
             yield None if is_empty(field) else field
-
-
-def _parse_puzzle(text):
-    p_text = text.split('\n')
-    field = [[]]
-
-    dx = 0
-    dy = 0
-    for j in range(len(p_text)):
-        string = p_text[j]
-        if not string:
-            dx += 1
-            dy = 0
-            field.append([])
-            continue
-
-        field[dx].append([])
-        digit_str = ''
-        color_with_mark = ''
-        for i in range(len(string)):
-            if string[i] == '\t' or string[i] == ' ':
-                if len(digit_str) > 0:
-                    field[dx][dy].append(Cube(color=int(digit_str)))
-                    digit_str = ''
-                continue
-
-            if string[i] == '-' and (i - 1 < 0 or string[i - 1] == '\t' or string[i - 1] == ' '):
-                if i + 1 < len(string) and string[i + 1] != '\t' and string[i + 1] != ' ':
-                    raise ValueError(
-                        f'строка:символ\n\n{j + 1}:{i + 2}\n{string}:{string[i + 1]}')
-                field[dx][dy].append(Cube())
-            elif string[i].isdigit():
-                digit_str += string[i]
-
-            elif string[i] == '*' and len(digit_str) > 0:
-                if len(color_with_mark) > 0:
-                    field[dx][dy].append(Cube(color=int(color_with_mark), mark=int(digit_str)))
-                    color_with_mark = ''
-                    digit_str = ''
-                    continue
-                if i + 1 < len(string) and string[i + 1] != '\t' and string[i + 1] != ' ':
-                    raise ValueError(
-                        f'строка:символ\n\n{j + 1}:{i + 2}\n{string}:{string[i + 1]}')
-                field[dx][dy].append(Cube(mark=int(digit_str)))
-                digit_str = ''
-
-            elif string[i] == '_' and len(digit_str) > 0:
-                color_with_mark = digit_str
-                digit_str = ''
-
-            else:
-                raise ValueError(
-                    f'строка:символ\n\n{j + 1}:{i + 1}\n{string}:{string[i]}')
-
-        if digit_str != '':
-            field[dx][dy].append(Cube(color=int(digit_str)))
-
-        dy += 1
-
-    count_dy = len(field[0])
-    count_dz = len(field[0][0])
-    for x in range(len(field)):
-        if len(field[x]) != count_dy:
-            raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}')
-        for y in range(len(field[x])):
-            if len(field[x][y]) != count_dz:
-                raise ValueError(f'Нарушена целостность параллелепипеда: при x = {x}, y = {y}')
-
-    return field
 
 
 if __name__ == '__main__':

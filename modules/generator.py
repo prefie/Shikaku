@@ -26,7 +26,7 @@ class Generator:
         for x in range(dx):
             for y in range(dy):
                 for z in range(dz):
-                    if self._solution[x][y][z].is_painted():
+                    if self._solution[x][y][z].is_colored():
                         continue
                     sx = randint(1, dx - x)
                     sy = randint(1, dy - y)
@@ -64,6 +64,6 @@ class Generator:
         for i in range(sx):
             for j in range(sy):
                 for k in range(sz):
-                    if self._solution[x + i][y + j][z + k].is_painted():
+                    if self._solution[x + i][y + j][z + k].is_colored():
                         return True
         return False

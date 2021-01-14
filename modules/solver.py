@@ -9,7 +9,9 @@ class Solver:
         self.task.solution = deepcopy(self.task.field)
         self.task.answer = []
         self._blocks = self._completion_blocks()
-        pass
+        self.depth = 0
+        self.status = 0
+        self.max = self._calculate_status()
 
     def solve(self, block_number=0):
         """Рекурсивно решает головоломку Shikaku"""
@@ -17,10 +19,14 @@ class Solver:
             return True
 
         block = self._blocks[block_number]
+
         for sides in block.sides:
             for i in range(sides[0]):
                 for j in range(sides[1]):
                     for k in range(sides[2]):
+                        if block_number <= self.depth:
+                            self.status += 1
+
                         if (sides[0] > self.task.size_x or
                                 sides[1] > self.task.size_y or
                                 sides[2] > self.task.size_z):
@@ -57,7 +63,7 @@ class Solver:
                 for z in range(len(self.task.field[x][y])):
                     if self.task.field[x][y][z].is_marked():
                         count += 1
-                        if not self.task.field[x][y][z].is_painted():
+                        if not self.task.field[x][y][z].is_colored():
                             blocks.append(
                                 Block(x, y, z, self.task.field[x][y][z].mark))
                         else:
@@ -67,7 +73,26 @@ class Solver:
 
         for block in blocks:
             block.color = colors.pop()
+            self.task.solution[block.x][block.y][block.z].color = block.color
+
+        blocks.sort(key=lambda b: -b.value)
+
         return blocks
+
+    def _calculate_status(self):
+        if len(self._blocks) < 1:
+            return 0
+
+        count = self._blocks[0].value * len(self._blocks[0].sides)
+        for i in range(1, len(self._blocks)):
+            pred = count * self._blocks[i].value * len(self._blocks[i].sides)
+            if pred > 10000:
+                self.depth = i - 1
+                return count
+            count = pred
+
+        self.depth = len(self._blocks) - 1
+        return count
 
 
 class Block:
@@ -115,7 +140,7 @@ class Parallelepiped:
         for x in range(self.point1.x, self.point2.x + 1):
             for y in range(self.point1.y, self.point2.y + 1):
                 for z in range(self.point1.z, self.point2.z + 1):
-                    if (self.task.solution[x][y][z].is_painted() and
+                    if (self.task.solution[x][y][z].is_colored() and
                             self.task.solution[x][y][z].color != self.block.color):
                         return True
         return False
@@ -134,6 +159,7 @@ class Parallelepiped:
     def clear_ids(self):
         """Стирает идентификатор параллелепипеда с решения"""
         self._fill_block(None)
+        self._remove_block_from_answer()
         self.task.solution[self.block.x][self.block.y][self.block.z].color =\
             self.block.color
 
@@ -146,6 +172,9 @@ class Parallelepiped:
                     block.append([x, y, z])
 
         self.task.answer.append(block)
+
+    def _remove_block_from_answer(self):
+        self.task.answer.pop()
 
 
 class Point:

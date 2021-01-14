@@ -26,27 +26,21 @@ def parse_args():
     return parser.parse_args()
 
 
-def _save_in_file(filename, field):
+def _save_in_file(filename, task):
     folder_path = os.path.dirname(filename)
 
     if folder_path != '' and not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
     with open(filename, 'w') as f:
-        for i in range(len(field)):
-            for j in range(len(field[i])):
-                f.write('\t'.join(map(str, field[i][j])))
-                if j != len(field[i]) - 1:
-                    f.write('\n')
-            if i != len(field) - 1:
-                f.write('\n\n')
+        f.write(str(task))
 
 
 def generate_puzzle(width, height, depth, puzzle_path, solution_path):
     generator = Generator()
     puzzle, solution = generator.generate(width, height, depth)
-    _save_in_file(puzzle_path, puzzle.field)
-    _save_in_file(solution_path, solution.solution)
+    _save_in_file(puzzle_path, puzzle)
+    _save_in_file(solution_path, solution)
 
 
 if __name__ == '__main__':
